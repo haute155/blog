@@ -7,34 +7,40 @@ import { getReadingTime } from "../../utils/readingTime";
 export async function getStaticPaths() {
   const allSeries = await getAllSeries();
 
-  return [...allSeries.entries()].map(([series, posts]) => ({
-    params: { series },
-    props: { posts },
+  return allSeries.map((series) => ({
+    params: { series: series.id },
+    props: { series },
   }));
 }
 
-const { series } = Astro.params;
-const { posts } = Astro.props;
+const { series } = Astro.props;
 ---
 
-<BaseLayout title={`${series} | Azure Notes`} description={`"${series}" 시리즈 전체 ${posts.length}편`}>
+<BaseLayout
+  title={`${series.name} | Azure Notes`}
+  description={series.description ?? `"${series.name}" 시리즈 전체 ${series.posts.length}편`}
+>
   <section class="pt-8 pb-16">
     <div class="container max-w-[760px]">
       <div class="mb-8">
-        <div
-          class="bg-brand-soft text-brand inline-flex items-center rounded-full px-[14px] py-2 text-sm font-bold"
+        <a
+          href="/series"
+          class="text-muted hover:text-brand text-sm font-semibold transition-colors"
         >
-          시리즈 연재
-        </div>
-        <h1 class="mt-4 mb-2 text-[clamp(30px,4vw,44px)] font-extrabold tracking-[-0.03em]">
-          {series}
+          ← 전체 시리즈
+        </a>
+        <h1 class="mt-3 mb-2 text-[clamp(30px,4vw,44px)] font-extrabold tracking-[-0.03em]">
+          {series.name}
         </h1>
-        <p class="text-muted">전체 {posts.length}편 · 1편부터 순서대로 읽는 것을 추천해요.</p>
+        {series.description && <p class="text-muted">{series.description}</p>}
+        <p class="text-muted mt-1 text-sm">
+          전체 {series.posts.length}편 · 1편부터 순서대로 읽는 것을 추천해요.
+        </p>
       </div>
 
       <ol class="space-y-4">
         {
-          posts.map((post, i) => (
+          series.posts.map((post, i) => (
             <li>
               <a
                 href={`/blog/${post.id}`}

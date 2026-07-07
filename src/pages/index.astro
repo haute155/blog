@@ -3,12 +3,14 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import PostCard from "../components/PostCard.astro";
 import { getCollection } from "astro:content";
 import { formatDate } from "../utils/date";
+import { getSeriesNameMap } from "../utils/series";
 
 const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
 
 const latestPosts = posts.slice(0, 3);
+const seriesNames = await getSeriesNameMap();
 ---
 
 <BaseLayout
@@ -66,6 +68,7 @@ const latestPosts = posts.slice(0, 3);
               description={post.data.description}
               pubDate={formatDate(post.data.pubDate)}
               tag={post.data.tags[0]}
+              seriesName={post.data.series && seriesNames.get(post.data.series.id)}
             />
           ))
         }

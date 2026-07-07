@@ -3,7 +3,7 @@ title: "프론트엔드 개발자의 블로그 구조 설계"
 description: "블로그를 단순 글 저장소가 아니라 포트폴리오처럼 쓰는 방법을 정리합니다."
 pubDate: "2026-03-18"
 tags: ["Frontend"]
-series: "블로그 구축기"
+series: blog-building
 ---
 
 ## 블로그는 곧 포트폴리오

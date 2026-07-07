@@ -4,7 +4,7 @@ import { getCollection, render } from "astro:content";
 import * as mdxComponents from "../../components/mdx/index";
 import { formatDate } from "../../utils/date";
 import { getReadingTime } from "../../utils/readingTime";
-import { getAllSeries } from "../../utils/series";
+import { getSeriesById } from "../../utils/series";
 import { SITE_AUTHOR } from "../../consts";
 
 export async function getStaticPaths() {
@@ -26,8 +26,8 @@ export async function getStaticPaths() {
 const { post, prevPost, nextPost } = Astro.props;
 const { Content, headings } = await render(post);
 
-const seriesName = post.data.series;
-const seriesPosts = seriesName ? ((await getAllSeries()).get(seriesName) ?? []) : [];
+const series = post.data.series ? await getSeriesById(post.data.series.id) : undefined;
+const seriesPosts = series?.posts ?? [];
 const seriesIndex = seriesPosts.findIndex((p) => p.id === post.id);
 
 const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
@@ -79,15 +79,15 @@ const jsonLd = {
       </div>
 
       {
-        seriesName && seriesPosts.length > 1 && (
+        series && seriesPosts.length > 1 && (
           <aside
             aria-label="시리즈"
             class="border-brand/20 bg-brand-soft/60 mt-7 rounded-2xl border p-5"
             data-pagefind-ignore
           >
             <p class="text-brand mb-1 text-sm font-extrabold tracking-wide uppercase">시리즈</p>
-            <a href={`/series/${seriesName}`} class="text-text hover:text-brand text-lg font-extrabold">
-              {seriesName}
+            <a href={`/series/${series.id}`} class="text-text hover:text-brand text-lg font-extrabold">
+              {series.name}
             </a>
             <span class="text-muted ml-2 text-sm font-semibold">
               {seriesIndex + 1} / {seriesPosts.length}편

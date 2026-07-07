@@ -3,7 +3,7 @@ title: "Astro로 기술 블로그 시작하기"
 description: "Astro 기반 블로그를 시작하면서 느낀 장점을 정리한 글입니다."
 pubDate: "2026-03-19"
 tags: ["Astro"]
-series: "블로그 구축기"
+series: blog-building
 ---
 
 ## Astro를 선택한 이유

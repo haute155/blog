@@ -5,9 +5,11 @@ interface Props {
   description: string;
   pubDate: string;
   tag?: string | undefined;
+  /** 시리즈 소속 글이면 타이틀 위에 작은 라벨로 표시 */
+  seriesName?: string | undefined;
 }
 
-const { href, title, description, pubDate, tag = "Tech" } = Astro.props;
+const { href, title, description, pubDate, tag = "Tech", seriesName } = Astro.props;
 ---
 
 <a
@@ -19,7 +21,10 @@ const { href, title, description, pubDate, tag = "Tech" } = Astro.props;
   >
     {tag}
   </span>
-  <h3 class="text-text text-[22px] leading-[1.3] font-bold">{title}</h3>
+  <div>
+    {seriesName && <p class="text-muted mb-1 text-[13px] font-semibold">시리즈 · {seriesName}</p>}
+    <h3 class="text-text text-[22px] leading-[1.3] font-bold">{title}</h3>
+  </div>
   <p class="text-muted">{description}</p>
   <div class="text-muted text-sm">{pubDate}</div>
 </a>
