@@ -1,0 +1,67 @@
+<dialog
+  id="search-modal"
+  class="border-line-brand bg-surface shadow-card m-auto mt-[15vh] w-[min(560px,90vw)] rounded-2xl border p-0 backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+>
+  <form action="/search" method="get" class="flex items-center gap-3 p-4">
+    <svg
+      class="text-muted h-5 w-5 shrink-0"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m21 21-4.3-4.3"></path>
+    </svg>
+    <input
+      type="search"
+      name="q"
+      required
+      placeholder="검색어를 입력하세요"
+      autocomplete="off"
+      class="text-text placeholder:text-muted min-w-0 flex-1 bg-transparent text-lg font-medium outline-none"
+    />
+    <button
+      type="submit"
+      class="bg-brand hover:bg-brand-dark shrink-0 rounded-full px-4 py-2 text-sm font-bold text-white transition-colors"
+    >
+      검색
+    </button>
+  </form>
+  <p class="text-muted border-line-brand border-t px-4 py-2.5 text-xs">
+    <kbd class="bg-brand-soft text-brand rounded px-1.5 py-0.5 font-sans font-bold">Enter</kbd> 검색
+    · <kbd class="bg-brand-soft text-brand rounded px-1.5 py-0.5 font-sans font-bold">Esc</kbd> 닫기
+  </p>
+</dialog>
+
+<script>
+  // 이벤트 위임 — View Transitions로 DOM이 교체돼도 계속 동작한다.
+  function openSearch() {
+    const dialog = document.getElementById("search-modal") as HTMLDialogElement | null;
+    if (!dialog) return;
+    dialog.showModal();
+    const input = dialog.querySelector("input");
+    input?.focus();
+    input?.select();
+  }
+
+  document.addEventListener("click", (e) => {
+    const target = e.target as Element | null;
+    if (target?.closest("#search-open")) {
+      openSearch();
+      return;
+    }
+    // 폼 바깥(백드롭) 클릭으로 닫기 — 백드롭 클릭은 dialog 요소 자신이 타깃이 된다
+    const dialog = document.getElementById("search-modal") as HTMLDialogElement | null;
+    if (dialog?.open && target === dialog) dialog.close();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      e.preventDefault();
+      openSearch();
+    }
+  });
+</script>

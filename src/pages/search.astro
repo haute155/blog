@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Search from "astro-pagefind/components/Search.astro";
 ---
 
 <BaseLayout title="Search | Azure Notes" description="블로그 글 검색">
@@ -8,27 +7,106 @@ import Search from "astro-pagefind/components/Search.astro";
     <div class="container max-w-[760px]">
       <div class="mb-6">
         <h1 class="mb-2 text-[clamp(30px,4vw,44px)] font-extrabold tracking-[-0.03em]">Search</h1>
-        <p class="text-muted">
-          제목과 본문 전체에서 검색합니다. 검색 인덱스는 빌드 시 생성되므로 개발 서버에서는 먼저
-          <code class="bg-brand-soft text-brand rounded px-1.5 py-0.5 text-sm">npm run build</code>가
-          필요합니다.
-        </p>
       </div>
 
-      <Search className="pagefind-ui" searchboxOptions={{ autofocus: true }} />
+      <form
+        action="/search"
+        method="get"
+        class="border-line-brand bg-surface/90 shadow-card flex items-center gap-3 rounded-2xl border p-4"
+      >
+        <svg
+          class="text-muted h-5 w-5 shrink-0"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <input
+          id="search-input"
+          type="search"
+          name="q"
+          required
+          placeholder="검색어를 입력하세요"
+          autocomplete="off"
+          class="text-text placeholder:text-muted min-w-0 flex-1 bg-transparent text-lg font-medium outline-none"
+        />
+        <button
+          type="submit"
+          class="bg-brand hover:bg-brand-dark shrink-0 rounded-full px-4 py-2 text-sm font-bold text-white transition-colors"
+        >
+          검색
+        </button>
+      </form>
+
+      <p id="search-status" class="text-muted mt-6" aria-live="polite"></p>
+      <div id="search-results" class="mt-4 space-y-4"></div>
     </div>
   </section>
 </BaseLayout>
 
 <style is:global>
-  .pagefind-ui {
-    --pagefind-ui-primary: var(--c-brand);
-    --pagefind-ui-text: var(--c-text);
-    --pagefind-ui-background: var(--c-surface);
-    --pagefind-ui-border: var(--c-line);
-    --pagefind-ui-tag: var(--c-brand-soft);
-    --pagefind-ui-border-width: 1px;
-    --pagefind-ui-border-radius: 16px;
-    --pagefind-ui-font: var(--font-sans);
+  /* Pagefind가 일치 단어를 <mark>로 감싼다 */
+  #search-results mark {
+    background: var(--c-brand-soft);
+    color: var(--c-brand);
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 0 2px;
   }
 </style>
+
+<!-- Pagefind 인덱스는 빌드 산출물이라 Vite 번들링을 피해 is:inline으로 로드.
+     data-astro-rerun: View Transitions로 이 페이지에 들어와도 다시 실행되도록 -->
+<script is:inline data-astro-rerun>
+  (async function () {
+    const query = (new URLSearchParams(location.search).get("q") ?? "").trim();
+    const input = document.getElementById("search-input");
+    const status = document.getElementById("search-status");
+    const results = document.getElementById("search-results");
+    if (!status || !results) return;
+
+    if (input) input.value = query;
+    results.innerHTML = "";
+
+    if (!query) {
+      status.textContent = "검색어를 입력하고 Enter를 눌러주세요.";
+      return;
+    }
+
+    status.textContent = "검색 중…";
+
+    try {
+      const pagefind = await import("/pagefind/pagefind.js");
+      await pagefind.init();
+      const search = await pagefind.search(query);
+      const items = await Promise.all(search.results.slice(0, 20).map((r) => r.data()));
+
+      if (items.length === 0) {
+        status.textContent = `“${query}”에 대한 결과가 없습니다.`;
+        return;
+      }
+
+      status.textContent = `“${query}” 검색 결과 ${search.results.length}건`;
+      results.innerHTML = items
+        .map(
+          (item) => `
+            <a
+              href="${item.url}"
+              class="border-line-brand bg-surface/90 hover:border-brand/25 block rounded-2xl border p-5 transition-colors"
+            >
+              <h3 class="text-text mb-1.5 text-lg font-bold">${item.meta.title ?? item.url}</h3>
+              <p class="text-muted text-sm leading-relaxed">${item.excerpt}</p>
+            </a>`,
+        )
+        .join("");
+    } catch {
+      status.textContent =
+        "검색 인덱스를 불러오지 못했습니다. 개발 서버에서는 pnpm build 후 pnpm preview로 확인해주세요.";
+    }
+  })();
+</script>
