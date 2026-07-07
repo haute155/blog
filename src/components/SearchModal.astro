@@ -164,7 +164,7 @@
   function updateSelection(delta: number) {
     const box = getResultsBox();
     if (!box || box.classList.contains("hidden")) return;
-    const options = [...box.querySelectorAll<HTMLAnchorElement>("[data-result-index]")];
+    const options = [...box.querySelectorAll("[data-result-index]")] as HTMLAnchorElement[];
     if (options.length === 0) return;
 
     selectedIndex = (selectedIndex + delta + options.length) % options.length;
@@ -209,9 +209,9 @@
       updateSelection(e.key === "ArrowDown" ? 1 : -1);
     } else if (e.key === "Enter" && selectedIndex >= 0) {
       // 선택된 결과로 이동. 선택이 없으면 폼 제출로 /search 페이지에 간다.
-      const selected = dialog.querySelector<HTMLAnchorElement>(
+      const selected = dialog.querySelector(
         `[data-result-index="${selectedIndex}"]`,
-      );
+      ) as HTMLAnchorElement | null;
       if (selected) {
         e.preventDefault();
         window.location.href = selected.href;
