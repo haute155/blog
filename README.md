@@ -1,23 +1,44 @@
-# Astro Tech Blog
+# Azure Notes
 
-007FFF 컬러를 기반으로 브랜딩한 전형적인 Astro 기술 블로그입니다.
+007FFF 컬러를 기반으로 브랜딩한 Astro 기술 블로그입니다.
 
 ## 실행
 
 ```bash
 npm install
-npm run dev
+npm run dev      # 개발 서버
+npm run build    # 프로덕션 빌드 (검색 인덱스 생성 포함)
+npm run preview  # 빌드 결과 미리보기
+npm run check    # astro check 타입 검사
+npm run lint     # ESLint
+npm run format   # Prettier
 ```
 
-## 포함된 페이지
+## 기술 스택
 
-- 홈
-- 블로그 목록
-- 블로그 상세
+- **Astro 7** — Content Layer API 기반 정적 사이트, 클라이언트 JS 최소화
+- **Tailwind CSS 4** — `@theme` 디자인 토큰 (라이트/다크 시맨틱 컬러)
+- **MDX** — 글 안에서 `Callout`, `Image` 컴포넌트 사용
+- **Pretendard** — 가변 폰트 self-host (dynamic subset)
+- **Pagefind** — 빌드 타임 정적 검색 인덱스
 
-## 주요 특징
+## 콘텐츠 구조
 
-- Astro Content Collections 사용
-- 007FFF 기반 브랜딩
-- 깔끔한 카드형 포스트 UI
-# blog
+| 컬렉션                | 성격                                            |
+| --------------------- | ----------------------------------------------- |
+| `src/content/blog/`   | 완성된 포스트 (발행일 중심, 태그/드래프트 지원) |
+| `src/content/notes/`  | 자라는 문서(디지털 가든) — 수정일 중심          |
+
+frontmatter에 `draft: true`를 넣으면 목록/빌드에서 제외됩니다.
+
+## 주요 기능
+
+- 다크 모드 (시스템 설정 감지 + 수동 토글, FOUC 방지)
+- 태그 페이지(`/tags`), 페이지네이션, 전문 검색(`/search`)
+- 글 상세: 목차, 이전/다음 글, 읽기 시간
+- SEO: canonical/OG/Twitter 메타, JSON-LD, sitemap, RSS(`/rss.xml`), robots.txt
+- View Transitions 페이지 전환
+
+## 배포 전 할 일
+
+- [ ] `astro.config.mjs`의 `site`를 실제 도메인으로 교체
