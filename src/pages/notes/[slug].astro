@@ -24,13 +24,20 @@ const { Content } = await render(note);
   publishedTime={note.data.createdDate}
   modifiedTime={note.data.updatedDate}
 >
-  <article class="pt-14 pb-20">
+  <article class="pt-14 pb-20" data-pagefind-body>
     <div class="container max-w-[760px]">
-      <span
-        class="bg-brand-soft text-brand inline-flex w-fit items-center rounded-full px-[10px] py-1.5 text-[13px] font-bold"
-      >
-        🌱 {note.data.tags[0] ?? "Note"}
-      </span>
+      <div class="flex flex-wrap gap-2">
+        {
+          note.data.tags.map((tag) => (
+            <a
+              href={`/tags/${tag}`}
+              class="bg-brand-soft text-brand hover:bg-brand inline-flex w-fit items-center rounded-full px-[10px] py-1.5 text-[13px] font-bold transition-colors hover:text-white"
+            >
+              🌱 {tag}
+            </a>
+          ))
+        }
+      </div>
       <h1
         class="mt-4 mb-3 text-[clamp(36px,5vw,54px)] leading-[1.1] font-extrabold tracking-[-0.04em]"
       >

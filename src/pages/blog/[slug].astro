@@ -3,19 +3,30 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getCollection, render } from "astro:content";
 import * as mdxComponents from "../../components/mdx/index";
 import { formatDate } from "../../utils/date";
+import { getReadingTime } from "../../utils/readingTime";
 import { SITE_AUTHOR } from "../../consts";
 
 export async function getStaticPaths() {
-  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+  );
 
-  return posts.map((post) => ({
+  return posts.map((post, i) => ({
     params: { slug: post.id },
-    props: { post },
+    props: {
+      post,
+      // 최신순 정렬이므로 이전 글 = 다음 인덱스
+      prevPost: posts[i + 1] ?? null,
+      nextPost: posts[i - 1] ?? null,
+    },
   }));
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
+const { post, prevPost, nextPost } = Astro.props;
+const { Content, headings } = await render(post);
+
+const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+const readingTime = getReadingTime(post.body);
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -38,13 +49,20 @@ const jsonLd = {
   modifiedTime={post.data.updatedDate}
 >
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} slot="head" />
-  <article class="pt-14 pb-20">
+  <article class="pt-14 pb-20" data-pagefind-body>
     <div class="container max-w-[760px]">
-      <span
-        class="bg-brand-soft text-brand inline-flex w-fit items-center rounded-full px-[10px] py-1.5 text-[13px] font-bold"
-      >
-        {post.data.tags[0] ?? "Tech"}
-      </span>
+      <div class="flex flex-wrap gap-2">
+        {
+          post.data.tags.map((tag) => (
+            <a
+              href={`/tags/${tag}`}
+              class="bg-brand-soft text-brand hover:bg-brand inline-flex w-fit items-center rounded-full px-[10px] py-1.5 text-[13px] font-bold transition-colors hover:text-white"
+            >
+              {tag}
+            </a>
+          ))
+        }
+      </div>
       <h1
         class="mt-4 mb-3 text-[clamp(36px,5vw,54px)] leading-[1.1] font-extrabold tracking-[-0.04em]"
       >
@@ -52,11 +70,60 @@ const jsonLd = {
       </h1>
       <div class="text-muted text-sm">
         <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+        <span aria-hidden="true"> · </span>{readingTime}분 읽기
       </div>
+
+      {
+        toc.length > 1 && (
+          <nav
+            aria-label="목차"
+            class="border-line-brand bg-surface/60 mt-7 rounded-2xl border p-5"
+            data-pagefind-ignore
+          >
+            <p class="text-text mb-2 text-sm font-extrabold tracking-wide uppercase">목차</p>
+            <ul class="space-y-1.5 text-[15px]">
+              {toc.map((heading) => (
+                <li class:list={[heading.depth === 3 && "pl-4"]}>
+                  <a href={`#${heading.slug}`} class="text-muted hover:text-brand transition-colors">
+                    {heading.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
 
       <div class="prose">
         <Content components={mdxComponents} />
       </div>
+
+      <nav aria-label="이전/다음 글" class="mt-10 grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+        {
+          prevPost ? (
+            <a
+              href={`/blog/${prevPost.id}`}
+              class="border-line-brand bg-surface/90 hover:border-brand/25 rounded-2xl border p-5 transition-colors"
+            >
+              <div class="text-muted mb-1 text-sm">← 이전 글</div>
+              <div class="text-text font-bold">{prevPost.data.title}</div>
+            </a>
+          ) : (
+            <span />
+          )
+        }
+        {
+          nextPost && (
+            <a
+              href={`/blog/${nextPost.id}`}
+              class="border-line-brand bg-surface/90 hover:border-brand/25 rounded-2xl border p-5 text-right transition-colors"
+            >
+              <div class="text-muted mb-1 text-sm">다음 글 →</div>
+              <div class="text-text font-bold">{nextPost.data.title}</div>
+            </a>
+          )
+        }
+      </nav>
     </div>
   </article>
 </BaseLayout>
