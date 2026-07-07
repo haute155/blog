@@ -1,0 +1,46 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection, render } from "astro:content";
+import * as mdxComponents from "../../components/mdx/index";
+import { formatDate } from "../../utils/date";
+
+export async function getStaticPaths() {
+  const notes = await getCollection("notes", ({ data }) => !data.draft);
+
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+---
+
+<BaseLayout title={note.data.title} description={note.data.description}>
+  <article class="pt-14 pb-20">
+    <div class="container max-w-[760px]">
+      <span
+        class="bg-brand-soft text-brand inline-flex w-fit items-center rounded-full px-[10px] py-1.5 text-[13px] font-bold"
+      >
+        🌱 {note.data.tags[0] ?? "Note"}
+      </span>
+      <h1
+        class="mt-4 mb-3 text-[clamp(36px,5vw,54px)] leading-[1.1] font-extrabold tracking-[-0.04em]"
+      >
+        {note.data.title}
+      </h1>
+      <div class="text-muted text-sm">
+        최초 작성 <time datetime={note.data.createdDate.toISOString()}
+          >{formatDate(note.data.createdDate)}</time
+        > · 마지막 업데이트 <time datetime={note.data.updatedDate.toISOString()}
+          >{formatDate(note.data.updatedDate)}</time
+        >
+      </div>
+
+      <div class="prose">
+        <Content components={mdxComponents} />
+      </div>
+    </div>
+  </article>
+</BaseLayout>
