@@ -1,0 +1,35 @@
+---
+type CalloutType = "info" | "tip" | "warning";
+
+const config: Record<CalloutType, { label: string; class: string }> = {
+  info: {
+    label: "안내",
+    class: "border-brand/20 bg-brand-soft text-text",
+  },
+  tip: {
+    label: "팁",
+    class:
+      "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
+  },
+  warning: {
+    label: "주의",
+    class:
+      "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
+  },
+};
+
+interface Props {
+  type?: CalloutType;
+  title?: string;
+}
+
+const { type = "info", title } = Astro.props;
+const { label, class: className } = config[type];
+---
+
+<div class:list={["my-6 rounded-2xl border p-5", className]}>
+  <p class="mb-1 text-sm font-bold tracking-wide uppercase opacity-60">
+    {title ?? label}
+  </p>
+  <div class="text-sm leading-relaxed [&>p]:m-0"><slot /></div>
+</div>

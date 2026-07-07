@@ -1,21 +1,77 @@
 @import "tailwindcss";
+/* 한글 최적화 가변 폰트 — dynamic subset이라 사용된 글자 범위만 로드된다 */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
-/* ─── Design System Tokens ─────────────────────────────────────── */
-@theme {
+/* data-theme 속성 기반 다크 모드 (dark: variant 활성화) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ─── Raw palette (라이트/다크에서 값이 바뀌는 원본 변수) ─────────── */
+:root {
+  --c-brand: #007fff;
+  --c-brand-hover: #005fcc;
+  --c-brand-soft: #eaf4ff;
+  --c-brand-glow: #59afff;
+
+  --c-text: #111827;
+  --c-body: #243244;
+  --c-muted: #6b7280;
+  --c-line: #dbe7f3;
+  --c-line-brand: rgba(0, 127, 255, 0.1);
+  --c-bg: #f8fbff;
+  --c-surface: #ffffff;
+
+  --c-shadow: rgba(0, 127, 255, 0.08);
+  --c-code-bg: #eef6ff;
+  --c-code-text: #005fcc;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --c-brand: #3d9bff;
+  --c-brand-hover: #6cb5ff;
+  --c-brand-soft: rgba(61, 155, 255, 0.14);
+  --c-brand-glow: #7cc0ff;
+
+  --c-text: #e7eef8;
+  --c-body: #c3d1e4;
+  --c-muted: #8fa2b8;
+  --c-line: #22304a;
+  --c-line-brand: rgba(96, 170, 255, 0.16);
+  --c-bg: #0b1220;
+  --c-surface: #111b2e;
+
+  --c-shadow: rgba(0, 0, 0, 0.35);
+  --c-code-bg: rgba(61, 155, 255, 0.12);
+  --c-code-text: #8cc4ff;
+
+  color-scheme: dark;
+}
+
+/* ─── Design System Tokens (Tailwind 유틸리티로 노출) ───────────── */
+@theme inline {
   /* Brand palette */
-  --color-brand: #007fff;
-  --color-brand-dark: #005fcc;
-  --color-brand-soft: #eaf4ff;
+  --color-brand: var(--c-brand);
+  --color-brand-dark: var(--c-brand-hover);
+  --color-brand-soft: var(--c-brand-soft);
+  --color-brand-glow: var(--c-brand-glow);
 
   /* Semantic colors */
-  --color-text: #111827;
-  --color-muted: #6b7280;
-  --color-line: #dbe7f3;
-  --color-bg: #f8fbff;
-  --color-surface: #ffffff;
+  --color-text: var(--c-text);
+  --color-body: var(--c-body);
+  --color-muted: var(--c-muted);
+  --color-line: var(--c-line);
+  --color-line-brand: var(--c-line-brand);
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+
+  /* Elevation */
+  --shadow-card: 0 12px 32px var(--c-shadow);
+  --shadow-badge: 0 8px 20px rgba(0, 127, 255, 0.22);
+  --shadow-button: 0 8px 20px rgba(0, 127, 255, 0.25);
 
   /* Typography */
-  --font-sans: Inter, Pretendard, system-ui, sans-serif;
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
 }
 
 /* ─── Container utility ─────────────────────────────────────────── */
@@ -31,11 +87,17 @@ html {
 
 body {
   font-family: var(--font-sans);
-  color: #111827;
+  color: var(--c-text);
   line-height: 1.6;
   background:
     radial-gradient(circle at top, rgba(0, 127, 255, 0.12), transparent 25%),
-    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    linear-gradient(180deg, var(--c-surface) 0%, var(--c-bg) 100%);
+}
+
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top, rgba(61, 155, 255, 0.1), transparent 30%),
+    linear-gradient(180deg, #0e1626 0%, var(--c-bg) 100%);
 }
 
 a {
@@ -43,32 +105,153 @@ a {
   text-decoration: none;
 }
 
+:focus-visible {
+  outline: 2px solid var(--c-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ─── Prose (blog post body) ────────────────────────────────────── */
 .prose {
   margin-top: 28px;
   padding: 32px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(0, 127, 255, 0.1);
+  background: color-mix(in srgb, var(--c-surface) 92%, transparent);
+  border: 1px solid var(--c-line-brand);
   border-radius: 24px;
-  box-shadow: 0 12px 32px rgba(0, 127, 255, 0.08);
+  box-shadow: var(--shadow-card, 0 12px 32px var(--c-shadow));
+  color: var(--c-body);
 }
 
 .prose h2,
-.prose h3 {
+.prose h3,
+.prose h4 {
+  color: var(--c-text);
+  font-weight: 800;
   letter-spacing: -0.03em;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
 }
 
-.prose p,
+.prose h2 {
+  font-size: 1.5em;
+}
+
+.prose h3 {
+  font-size: 1.25em;
+}
+
+.prose h2:first-child {
+  margin-top: 0;
+}
+
+.prose p {
+  margin-block: 1em;
+}
+
+.prose ul,
+.prose ol {
+  margin-block: 1em;
+  padding-left: 1.4em;
+}
+
+.prose ul {
+  list-style: disc;
+}
+
+.prose ol {
+  list-style: decimal;
+}
+
 .prose li {
-  color: #243244;
+  margin-block: 0.35em;
+}
+
+.prose a {
+  color: var(--c-brand);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--c-brand) 40%, transparent);
+}
+
+.prose a:hover {
+  text-decoration-color: var(--c-brand);
+}
+
+.prose blockquote {
+  margin-block: 1.4em;
+  padding: 0.1em 1.2em;
+  border-left: 3px solid var(--c-brand);
+  background: var(--c-brand-soft);
+  border-radius: 0 12px 12px 0;
+  color: var(--c-text);
+}
+
+.prose hr {
+  margin-block: 2.5em;
+  border: none;
+  border-top: 1px solid var(--c-line);
+}
+
+.prose img {
+  border-radius: 16px;
+  max-width: 100%;
+}
+
+.prose table {
+  width: 100%;
+  margin-block: 1.4em;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.prose th,
+.prose td {
+  padding: 0.6em 0.9em;
+  border: 1px solid var(--c-line);
+  text-align: left;
+}
+
+.prose th {
+  background: var(--c-brand-soft);
+  color: var(--c-text);
+  font-weight: 700;
 }
 
 .prose code {
   padding: 0.15em 0.45em;
   border-radius: 8px;
-  background: #eef6ff;
-  color: #005fcc;
+  background: var(--c-code-bg);
+  color: var(--c-code-text);
   font-size: 0.9em;
+}
+
+/* 코드 블록 (Shiki) — 인라인 코드 스타일 초기화 */
+.prose pre {
+  margin-block: 1.4em;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--c-line);
+  overflow-x: auto;
+  font-size: 0.9em;
+  line-height: 1.7;
+}
+
+.prose pre code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1em;
+}
+
+/* Shiki 듀얼 테마 — 다크 모드에서 dark 팔레트로 전환 */
+:root[data-theme="dark"] .astro-code,
+:root[data-theme="dark"] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
 }
 
 @media (max-width: 640px) {

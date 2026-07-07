@@ -1,0 +1,99 @@
+---
+const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/blog", label: "Blog" },
+  { href: "/notes", label: "Notes" },
+  { href: "/about", label: "About" },
+];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? currentPath === "/" : currentPath.startsWith(href);
+---
+
+<header
+  class="border-line-brand bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-[12px]"
+>
+  <div
+    class="container flex h-[72px] items-center justify-between max-sm:h-auto max-sm:flex-col max-sm:items-start max-sm:gap-3 max-sm:py-4"
+  >
+    <a
+      href="/"
+      aria-label="홈으로 이동"
+      class="text-text inline-flex items-center gap-3 font-extrabold tracking-[-0.02em]"
+    >
+      <span
+        class="from-brand to-brand-glow shadow-badge flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-sm font-extrabold text-white"
+      >
+        A
+      </span>
+      <span>Azure Notes</span>
+    </a>
+
+    <div class="flex items-center gap-5">
+      <nav class="flex gap-5">
+        {
+          navItems.map((item) => (
+            <a
+              href={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
+              class:list={[
+                "hover:text-brand font-semibold transition-colors",
+                isActive(item.href) ? "text-brand" : "text-muted",
+              ]}
+            >
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <button
+        id="theme-toggle"
+        type="button"
+        aria-label="다크 모드 전환"
+        class="border-line-brand text-muted hover:text-brand hover:border-brand/40 flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
+      >
+        <svg
+          class="hidden h-[18px] w-[18px] [html[data-theme=dark]_&]:block"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="4"></circle>
+          <path
+            d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"
+          ></path>
+        </svg>
+        <svg
+          class="block h-[18px] w-[18px] [html[data-theme=dark]_&]:hidden"
+          aria-hidden="true"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          viewBox="0 0 24 24"
+        >
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  // 이벤트 위임 방식이라 View Transitions로 DOM이 교체돼도 계속 동작한다.
+  document.addEventListener("click", (e) => {
+    const target = e.target as Element | null;
+    if (!target?.closest("#theme-toggle")) return;
+
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem("theme", next);
+  });
+</script>
