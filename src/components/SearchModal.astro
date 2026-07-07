@@ -60,8 +60,10 @@
   }
 
   function getPagefind() {
-    // @ts-expect-error — 빌드 시 생성되는 산출물이라 타입 선언이 없다
-    pagefindPromise ??= import(/* @vite-ignore */ "/pagefind/pagefind.js")
+    // 빌드 시 생성되는 산출물이라 Vite가 해석하면 안 된다 — 리터럴이 아닌
+    // 변수 경로 + @vite-ignore로 dev 서버의 import 분석까지 확실히 우회
+    const pagefindPath = "/pagefind/pagefind.js";
+    pagefindPromise ??= import(/* @vite-ignore */ pagefindPath)
       .then(async (pf) => {
         await pf.init();
         return pf;
