@@ -4,14 +4,17 @@
 
 ## 실행
 
+[mise](https://mise.jdx.dev)가 `mise.toml`에 고정된 Node 22 / pnpm 10을 자동으로 맞춰줍니다.
+
 ```bash
-npm install
-npm run dev      # 개발 서버
-npm run build    # 프로덕션 빌드 (검색 인덱스 생성 포함)
-npm run preview  # 빌드 결과 미리보기
-npm run check    # astro check 타입 검사
-npm run lint     # ESLint
-npm run format   # Prettier
+mise install     # 최초 1회 — Node/pnpm 설치
+pnpm install
+pnpm dev         # 개발 서버
+pnpm build       # 프로덕션 빌드 (검색 인덱스 생성 포함)
+pnpm preview     # 빌드 결과 미리보기
+pnpm check       # astro check 타입 검사
+pnpm lint        # ESLint
+pnpm format      # Prettier
 ```
 
 ## 기술 스택

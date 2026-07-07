@@ -1,0 +1,4 @@
+[tools]
+# Astro 6+는 Node 22.12 이상 필요
+node = "22"
+pnpm = "10"
