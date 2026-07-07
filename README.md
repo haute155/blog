@@ -37,7 +37,8 @@ frontmatter에 `draft: true`를 넣으면 목록/빌드에서 제외됩니다.
 ## 주요 기능
 
 - 다크 모드 (시스템 설정 감지 + 수동 토글, FOUC 방지)
-- 태그 필터(Blog 목록 상단 칩), 페이지네이션, 전문 검색(`/search`)
+- 태그 필터(Blog 목록 상단 칩), 페이지네이션, 검색 팝업(⌘K) + 전체 결과 페이지
+- 시리즈 연재 — frontmatter에 `series: "시리즈명"`을 넣으면 발행일순으로 묶임 (`/series/시리즈명`)
 - 글 상세: 목차, 이전/다음 글, 읽기 시간
 - SEO: canonical/OG/Twitter 메타, JSON-LD, sitemap, RSS(`/rss.xml`), robots.txt
 - View Transitions 페이지 전환
