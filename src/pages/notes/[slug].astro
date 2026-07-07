@@ -17,7 +17,13 @@ const { note } = Astro.props;
 const { Content } = await render(note);
 ---
 
-<BaseLayout title={note.data.title} description={note.data.description}>
+<BaseLayout
+  title={note.data.title}
+  description={note.data.description}
+  ogType="article"
+  publishedTime={note.data.createdDate}
+  modifiedTime={note.data.updatedDate}
+>
   <article class="pt-14 pb-20">
     <div class="container max-w-[760px]">
       <span
