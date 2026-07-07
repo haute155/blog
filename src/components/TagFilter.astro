@@ -1,0 +1,51 @@
+---
+import { getCollection } from "astro:content";
+
+interface Props {
+  /** 현재 필터 중인 태그 — 없으면 "전체"가 활성 */
+  activeTag?: string;
+}
+
+const { activeTag } = Astro.props;
+
+const posts = await getCollection("blog", ({ data }) => !data.draft);
+const notes = await getCollection("notes", ({ data }) => !data.draft);
+
+const tagCounts = new Map<string, number>();
+for (const entry of [...posts, ...notes]) {
+  for (const tag of entry.data.tags) {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+}
+
+const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+const baseChip =
+  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors";
+const inactiveChip =
+  "border-line-brand bg-surface/90 text-muted hover:border-brand/40 hover:text-brand";
+const activeChip = "border-brand bg-brand text-white";
+---
+
+<nav aria-label="태그 필터" class="flex flex-wrap gap-2">
+  <a href="/blog" class:list={[baseChip, activeTag ? inactiveChip : activeChip]}> 전체 </a>
+  {
+    tags.map(([tag, count]) => (
+      <a
+        href={`/tags/${tag}`}
+        aria-current={activeTag === tag ? "page" : undefined}
+        class:list={[baseChip, activeTag === tag ? activeChip : inactiveChip]}
+      >
+        {tag}
+        <span
+          class:list={[
+            "rounded-full px-1.5 text-xs font-bold",
+            activeTag === tag ? "bg-white/20" : "bg-brand-soft text-brand",
+          ]}
+        >
+          {count}
+        </span>
+      </a>
+    ))
+  }
+</nav>
