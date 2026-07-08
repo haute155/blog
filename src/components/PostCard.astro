@@ -1,30 +1,23 @@
 ---
+import Chip from "./Chip.astro";
+
 interface Props {
   href: string;
   title: string;
   description: string;
   pubDate: string;
   tag?: string | undefined;
-  /** 시리즈 소속 글이면 타이틀 위에 작은 라벨로 표시 */
-  seriesName?: string | undefined;
 }
 
-const { href, title, description, pubDate, tag = "Tech", seriesName } = Astro.props;
+const { href, title, description, pubDate, tag = "Tech" } = Astro.props;
 ---
 
 <a
   href={href}
   class="border-line-brand bg-surface/90 shadow-card hover:border-brand/25 flex flex-col gap-[14px] rounded-[20px] border p-6 transition duration-200 hover:-translate-y-1"
 >
-  <span
-    class="bg-brand-soft text-brand inline-flex w-fit items-center rounded-full px-[10px] py-1.5 text-[13px] font-bold"
-  >
-    {tag}
-  </span>
-  <div>
-    {seriesName && <p class="text-muted mb-1 text-[13px] font-semibold">시리즈 · {seriesName}</p>}
-    <h3 class="text-text text-[22px] leading-[1.3] font-bold">{title}</h3>
-  </div>
+  <Chip>{tag}</Chip>
+  <h3 class="text-text text-[22px] leading-[1.3] font-bold">{title}</h3>
   <p class="text-muted">{description}</p>
   <div class="text-muted text-sm">{pubDate}</div>
 </a>

@@ -3,7 +3,7 @@ import type { CollectionEntry } from "astro:content";
 type BlogPost = CollectionEntry<"blog">;
 
 /**
- * 태그 겹침(+같은 시리즈 가산점) 기반 관련 글.
+ * 태그 겹침 기반 관련 글.
  * 점수가 같으면 최신 글 우선, 관련 글이 부족하면 최신 글로 채운다.
  */
 export function getRelatedPosts(
@@ -18,11 +18,7 @@ export function getRelatedPosts(
       const sharedTags = post.data.tags.filter((tag) =>
         current.data.tags.includes(tag),
       ).length;
-      const sameSeries =
-        current.data.series && post.data.series?.id === current.data.series.id
-          ? 3
-          : 0;
-      return { post, score: sharedTags * 2 + sameSeries };
+      return { post, score: sharedTags * 2 };
     })
     .filter(({ score }) => score > 0)
     .sort(
