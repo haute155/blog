@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blog",
+  "compatibility_date": "2026-07-08",
+  // 정적 사이트: 빌드 산출물(dist)을 Workers 정적 에셋으로 서빙
+  "assets": {
+    "directory": "./dist",
+    // 존재하지 않는 경로는 커스텀 404 페이지로
+    "not_found_handling": "404-page"
+  }
+}
