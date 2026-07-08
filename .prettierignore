@@ -1,0 +1,4 @@
+# 도구가 생성/관리하는 파일
+pnpm-lock.yaml
+dist/
+.astro/
