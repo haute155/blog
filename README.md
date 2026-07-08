@@ -40,8 +40,12 @@ frontmatter에 `draft: true`를 넣으면 목록/빌드에서 제외됩니다.
 - 태그 필터(Blog 목록 상단 칩), 페이지네이션, 검색 팝업(⌘K) + 전체 결과 페이지
 - 시리즈 연재 — `src/content/series/`에 yaml로 시리즈를 정의하고, 글 frontmatter에
   `series: 파일명`으로 참조 (오타는 빌드 에러로 검출, URL은 영문 슬러그, 회차는 발행일순)
-- 글 상세: 목차(플로팅 스크롤 스파이 포함), 이전/다음 글
-- SEO: canonical/OG/Twitter 메타, JSON-LD, sitemap, RSS(`/rss.xml`), robots.txt
+- 글 상세: 목차(플로팅 스크롤 스파이), 이전/다음 글, 관련 글 추천(태그 겹침 기반),
+  공유 버튼(링크 복사·X), giscus 댓글, 수정일 표시
+- 코드 블록: hover 복사 버튼, ` ```lang title="파일명" ` 라벨
+- SEO: canonical/OG/Twitter 메타, JSON-LD, sitemap, robots.txt,
+  글별 OG 이미지 자동 생성(satori), RSS 전문 피드(`/rss.xml`)
+- `/archive` 연도별 전체 글 목록
 - View Transitions 페이지 전환
 
 ## 배포 전 할 일

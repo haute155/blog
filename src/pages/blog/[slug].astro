@@ -7,6 +7,7 @@ import { getSeriesById } from "../../utils/series";
 import { getRelatedPosts } from "../../utils/related";
 import { SITE_AUTHOR } from "../../consts";
 import ShareButtons from "../../components/ShareButtons.astro";
+import Comments from "../../components/Comments.astro";
 import CodeCopy from "../../components/CodeCopy.astro";
 import PostCard from "../../components/PostCard.astro";
 
@@ -171,6 +172,8 @@ const jsonLd = {
           </section>
         )
       }
+
+      <Comments />
 
       <nav aria-label="이전/다음 글" class="mt-10 grid grid-cols-2 gap-4 max-sm:grid-cols-1">
         {

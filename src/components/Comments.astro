@@ -1,0 +1,65 @@
+---
+import { GISCUS } from "../consts";
+---
+
+<section id="comments" aria-label="댓글" class="mt-12" data-pagefind-ignore>
+  <h2 class="text-text mb-4 text-xl font-extrabold">댓글</h2>
+  <div
+    id="giscus-container"
+    data-repo={GISCUS.repo}
+    data-repo-id={GISCUS.repoId}
+    data-category={GISCUS.category}
+    data-category-id={GISCUS.categoryId}
+  >
+  </div>
+</section>
+
+<script>
+  // 현재 테마에 맞춰 giscus를 로드하고, 다크모드 토글 시 iframe에 테마 변경을 전달한다.
+  // View Transitions로 페이지가 바뀌면 컨테이너가 새로 그려지므로 다시 주입.
+  function currentTheme() {
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  }
+
+  function mountGiscus() {
+    const container = document.getElementById("giscus-container");
+    if (!container || container.querySelector("iframe, script")) return;
+
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.crossOrigin = "anonymous";
+
+    Object.entries({
+      "data-repo": container.dataset.repo ?? "",
+      "data-repo-id": container.dataset.repoId ?? "",
+      "data-category": container.dataset.category ?? "",
+      "data-category-id": container.dataset.categoryId ?? "",
+      "data-mapping": "pathname",
+      "data-strict": "0",
+      "data-reactions-enabled": "1",
+      "data-emit-metadata": "0",
+      "data-input-position": "bottom",
+      "data-theme": currentTheme(),
+      "data-lang": "ko",
+    }).forEach(([key, value]) => script.setAttribute(key, value));
+
+    container.appendChild(script);
+  }
+
+  function syncGiscusTheme() {
+    const iframe = document.querySelector<HTMLIFrameElement>("iframe.giscus-frame");
+    iframe?.contentWindow?.postMessage(
+      { giscus: { setConfig: { theme: currentTheme() } } },
+      "https://giscus.app",
+    );
+  }
+
+  new MutationObserver(syncGiscusTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+
+  mountGiscus();
+  document.addEventListener("astro:page-load", mountGiscus);
+</script>
