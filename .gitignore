@@ -11,8 +11,10 @@ dist/
 
 # os / editor
 .DS_Store
-.vscode/
+.vscode/*
 .idea/
 
 # logs
 npm-debug.log*
+
+!.vscode/settings.json
