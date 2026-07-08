@@ -115,6 +115,7 @@ const jsonLd = {
       {
         toc.length > 1 && (
           <nav
+            id="toc-inline"
             aria-label="목차"
             class="border-line-brand bg-surface/60 mt-7 rounded-2xl border p-5"
             data-pagefind-ignore
@@ -123,7 +124,11 @@ const jsonLd = {
             <ul class="space-y-1.5 text-[15px]">
               {toc.map((heading) => (
                 <li class:list={[heading.depth === 3 && "pl-4"]}>
-                  <a href={`#${heading.slug}`} class="text-muted hover:text-brand transition-colors">
+                  <a
+                    href={`#${heading.slug}`}
+                    data-toc-link={heading.slug}
+                    class="text-muted hover:text-brand transition-colors"
+                  >
                     {heading.text}
                   </a>
                 </li>
@@ -164,5 +169,119 @@ const jsonLd = {
         }
       </nav>
     </div>
+
+    {
+      toc.length > 1 && (
+        <aside
+          id="toc-floating"
+          aria-label="플로팅 목차"
+          data-pagefind-ignore
+          class="border-line-brand bg-surface/95 shadow-card fixed top-1/2 right-6 z-20 hidden w-[230px] rounded-2xl border p-4 backdrop-blur-sm xl:block"
+        >
+          <p class="text-text mb-2 text-xs font-extrabold tracking-wide uppercase">목차</p>
+          <ul class="max-h-[60vh] space-y-1 overflow-y-auto text-[13px] leading-snug">
+            {toc.map((heading) => (
+              <li class:list={[heading.depth === 3 && "pl-3"]}>
+                <a
+                  href={`#${heading.slug}`}
+                  data-toc-link={heading.slug}
+                  class="text-muted hover:text-brand block py-0.5 transition-colors"
+                >
+                  {heading.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
   </article>
 </BaseLayout>
+
+<style>
+  /* 숨김 상태: 오른쪽에 살짝 밀려 있다가 */
+  #toc-floating {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%) translateX(28px) scale(0.9);
+    transition:
+      opacity 0.2s ease,
+      transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); /* "또잉" — 오버슈트 스프링 */
+  }
+
+  /* 본문 상단 목차가 화면에서 사라지면 튀어나온다 */
+  #toc-floating.toc-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #toc-floating {
+      transition: opacity 0.2s ease;
+      transform: translateY(-50%);
+    }
+  }
+</style>
+
+<script>
+  // 페이지 전환(View Transitions)마다 다시 초기화. 이전 페이지의
+  // 리스너/옵저버는 AbortController와 disconnect로 정리한다.
+  let cleanup: (() => void) | undefined;
+
+  function initToc() {
+    cleanup?.();
+
+    const inlineToc = document.getElementById("toc-inline");
+    const floatingToc = document.getElementById("toc-floating");
+    if (!inlineToc || !floatingToc) return;
+
+    // 1) 본문 상단 목차가 뷰포트 위로 사라지면 플로팅 목차 표시
+    const visibility = new IntersectionObserver(([entry]) => {
+      if (!entry) return;
+      const scrolledPast = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+      floatingToc.classList.toggle("toc-visible", scrolledPast);
+    });
+    visibility.observe(inlineToc);
+
+    // 2) 스크롤 스파이 — 지금 읽는 섹션 하이라이트
+    const headings = [...document.querySelectorAll(".prose h2[id], .prose h3[id]")];
+    const links = [...document.querySelectorAll("[data-toc-link]")];
+    const controller = new AbortController();
+    let ticking = false;
+
+    function highlightCurrent() {
+      ticking = false;
+      let currentId = headings[0]?.id;
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top <= 120) currentId = heading.id;
+        else break;
+      }
+      for (const link of links) {
+        const active = link.getAttribute("data-toc-link") === currentId;
+        link.classList.toggle("text-brand", active);
+        link.classList.toggle("font-bold", active);
+        link.classList.toggle("text-muted", !active);
+      }
+    }
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(highlightCurrent);
+      },
+      { passive: true, signal: controller.signal },
+    );
+    highlightCurrent();
+
+    cleanup = () => {
+      visibility.disconnect();
+      controller.abort();
+    };
+  }
+
+  initToc();
+  document.addEventListener("astro:page-load", initToc);
+</script>
