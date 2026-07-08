@@ -5,14 +5,14 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 <BaseLayout title="Search" description="블로그 글 검색">
   <section class="pt-8 pb-16">
     <div class="container max-w-[760px]">
-      <div class="mb-6">
+      <div class="rise mb-6">
         <h1 class="mb-2 text-[clamp(30px,4vw,44px)] font-extrabold tracking-[-0.03em]">Search</h1>
       </div>
 
       <form
         action="/search"
         method="get"
-        class="border-line-brand bg-surface/90 shadow-card flex items-center gap-3 rounded-2xl border p-4"
+        class="rise border-line-brand bg-surface/90 shadow-card flex items-center gap-3 rounded-2xl border p-4" style="--rise: 1"
       >
         <svg
           class="text-muted h-5 w-5 shrink-0"
@@ -37,7 +37,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         />
         <button
           type="submit"
-          class="bg-brand hover:bg-brand-dark shrink-0 rounded-full px-4 py-2 text-sm font-bold text-white transition-colors"
+          class="bg-brand-glow hover:bg-brand-dark shrink-0 rounded-full px-4 py-2 text-sm font-bold text-white transition-colors"
         >
           검색
         </button>
@@ -60,9 +60,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   }
 </style>
 
-<!-- Pagefind 인덱스는 빌드 산출물이라 Vite 번들링을 피해 is:inline으로 로드.
-     data-astro-rerun: View Transitions로 이 페이지에 들어와도 다시 실행되도록 -->
-<script is:inline data-astro-rerun>
+<!-- Pagefind 인덱스는 빌드 산출물이라 Vite 번들링을 피해 is:inline으로 로드 -->
+<script is:inline>
   (async function () {
     const query = (new URLSearchParams(location.search).get("q") ?? "").trim();
     const input = document.getElementById("search-input");

@@ -1,4 +1,5 @@
 ---
+import Chip from "./Chip.astro";
 import { getCollection } from "astro:content";
 
 interface Props {
@@ -20,32 +21,28 @@ for (const entry of [...posts, ...notes]) {
 
 const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
-const baseChip =
-  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors";
-const inactiveChip =
-  "border-line-brand bg-surface/90 text-muted hover:border-brand/40 hover:text-brand";
-const activeChip = "border-brand bg-brand text-white";
 ---
 
 <nav aria-label="태그 필터" class="flex flex-wrap gap-2">
-  <a href="/posts" class:list={[baseChip, activeTag ? inactiveChip : activeChip]}> 전체 </a>
+  <Chip href="/posts" size="md" variant={activeTag ? "soft" : "active"}>전체</Chip>
   {
     tags.map(([tag, count]) => (
-      <a
+      <Chip
         href={`/tags/${tag}`}
+        size="md"
+        variant={activeTag === tag ? "active" : "soft"}
         aria-current={activeTag === tag ? "page" : undefined}
-        class:list={[baseChip, activeTag === tag ? activeChip : inactiveChip]}
       >
         {tag}
         <span
           class:list={[
             "rounded-full px-1.5 text-xs font-bold",
-            activeTag === tag ? "bg-white/20" : "bg-brand-soft text-brand",
+            activeTag === tag ? "bg-brand/15 text-brand" : "bg-surface/80 text-muted",
           ]}
         >
           {count}
         </span>
-      </a>
+      </Chip>
     ))
   }
 </nav>

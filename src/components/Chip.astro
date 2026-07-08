@@ -1,0 +1,39 @@
+---
+/**
+ * 라운드 태그/배지 공통 컴포넌트 — 사이트의 모든 칩은 크림 채움 한 가지 모양.
+ * href를 주면 <a>, 없으면 <span>으로 렌더링된다.
+ *
+ * variant
+ * - soft:   기본 (태그, 배지, 필터의 미선택 항목)
+ * - active: 목록에서 현재 선택된 항목 (테두리 + 브랜드 텍스트)
+ */
+interface Props {
+  href?: string | undefined;
+  variant?: "soft" | "active";
+  size?: "sm" | "md";
+  class?: string;
+  "aria-current"?: "page" | undefined;
+}
+
+const { href, variant = "soft", size = "sm", class: className, ...rest } = Astro.props;
+
+// 투명 테두리를 기본으로 깔아 active 전환 시 크기가 변하지 않게 한다
+const base =
+  "inline-flex w-fit items-center gap-1.5 rounded-full border border-transparent font-semibold transition-colors";
+
+const sizes = {
+  sm: "px-[10px] py-1.5 text-[13px]",
+  md: "px-3.5 py-1.5 text-sm",
+};
+
+const variants = {
+  soft: `bg-brand-soft/70 text-muted ${href ? "hover:text-brand" : ""}`,
+  active: "border-brand/50! bg-brand-soft text-brand",
+};
+
+const Tag = href ? "a" : "span";
+---
+
+<Tag href={href} class:list={[base, sizes[size], variants[variant], className]} {...rest}>
+  <slot />
+</Tag>

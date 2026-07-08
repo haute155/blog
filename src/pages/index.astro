@@ -1,75 +1,86 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import PostCard from "../components/PostCard.astro";
 import { getCollection } from "astro:content";
 import { formatDate } from "../utils/date";
-import { getSeriesNameMap } from "../utils/series";
+import Chip from "../components/Chip.astro";
 
 const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
+const notes = await getCollection("notes", ({ data }) => !data.draft);
 
-const latestPosts = posts.slice(0, 3);
-const seriesNames = await getSeriesNameMap();
+const latestPosts = posts.slice(0, 12);
+
+const tagCounts = new Map<string, number>();
+for (const entry of [...posts, ...notes]) {
+  for (const tag of entry.data.tags) {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+}
+const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 ---
 
 <BaseLayout>
   <!-- Hero -->
-  <section class="pt-[72px] pb-12">
+  <section class="pt-[150px]">
     <div class="container">
-      <div
-        class="bg-brand-soft text-brand inline-flex items-center rounded-full px-[14px] py-2 text-sm font-bold"
-      >
-        ☕ 개발자 오뜨
-      </div>
-      <h1
-        class="mt-[18px] mb-3 text-[clamp(40px,6vw,68px)] leading-[1.05] font-extrabold tracking-[-0.04em]"
-      >
-        커피 한 잔과 읽는<br />웹 개발 이야기
+      <h1 class="rise text-text font-bold tracking-[-0.02em] text-2xl">
+        안녕하세요. 오뜨입니다.
       </h1>
-      <p class="text-muted max-w-[760px] text-lg">
-        렌더링, 프레임워크, 웹의 원리를 파고드는 긴 호흡의 글을 씁니다. 한 편이 커피 한 잔
-        분량이에요.
-      </p>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <a
-          href="/posts"
-          class="bg-brand hover:bg-brand-dark inline-flex h-[46px] items-center justify-center rounded-full px-[18px] font-bold text-white shadow-button transition-colors duration-200"
-        >
-          글 보러가기
-        </a>
-        <a
-          href="/posts"
-          class="border-line hover:border-brand/40 inline-flex h-[46px] items-center justify-center rounded-full bg-surface border px-[18px] font-bold transition-colors duration-200"
-        >
-          전체 글 보기
-        </a>
-      </div>
     </div>
   </section>
 
   <!-- Latest posts -->
-  <section class="pt-8 pb-16">
-    <div class="container">
-      <div class="mb-6">
-        <h2 class="mb-2 text-[clamp(30px,4vw,44px)] font-extrabold tracking-[-0.03em]">최근 글</h2>
-        <p class="text-muted">최신 글을 빠르게 확인할 수 있습니다.</p>
-      </div>
+  <section>
+    <div class="container rise" style="--rise:2">
+      <h2 class="text-xl text-brand-glow font-bold tracking-[-0.03em] mt-15 mb-5" >최근 글</h2>
 
-      <div class="grid grid-cols-3 gap-5 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1">
+      <ul class="divide-line divide-y" >
         {
           latestPosts.map((post) => (
-            <PostCard
-              href={`/posts/${post.id}`}
-              title={post.data.title}
-              description={post.data.description}
-              pubDate={formatDate(post.data.pubDate)}
-              tag={post.data.tags[0]}
-              seriesName={post.data.series && seriesNames.get(post.data.series.id)}
-            />
+            <li class="py-2 first:pt-0">
+              <a href={`/posts/${post.id}`} class="group block ">
+                <div class="flex items-baseline justify-between gap-4">
+                  <h3 class="text-text group-hover:text-brand text-lg font-bold transition-colors">
+                    {post.data.title}
+                  </h3>
+                  <time
+                    datetime={post.data.pubDate.toISOString()}
+                    class="text-muted shrink-0 text-sm"
+                  >
+                    {formatDate(post.data.pubDate)}
+                  </time>
+                </div>
+                <p class="text-muted line-clamp-1">{post.data.description}</p>
+              </a>
+            </li>
           ))
         }
-      </div>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 태그 바로가기 -->
+  <section class="mt-15">
+    <div class="container grid grid-cols-2 gap-5 max-[768px]:grid-cols-1">
+      {
+        tags.length > 0 && (
+          <div class="rise" style="--rise: 6">
+            <h2 class="text-brand-glow mb-5 text-xl font-bold">태그</h2>
+            <div class="flex flex-wrap gap-2">
+              {tags.map(([tag, count]) => (
+                <Chip href={`/tags/${tag}`} size="md">
+                  {tag}
+                  <span class="bg-surface/80 text-muted rounded-full px-1.5 text-xs font-bold">
+                    {count}
+                  </span>
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )
+      }
+
     </div>
   </section>
 </BaseLayout>
