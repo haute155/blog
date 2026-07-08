@@ -15,7 +15,13 @@ const series = defineCollection({
 });
 
 const blog = defineCollection({
-  loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: "./src/content/blog" }),
+  loader: glob({
+    pattern: "**/[^_]*.{md,mdx}",
+    base: "./src/content/blog",
+    // 폴더는 정리용일 뿐 URL에 반영하지 않는다 — 파일명만이 슬러그.
+    // (연도/주제별로 폴더를 옮겨도 글 주소가 바뀌지 않음. 단, 파일명은 전역 유일해야 함)
+    generateId: ({ entry }) => entry.split("/").pop()!.replace(/\.(md|mdx)$/, ""),
+  }),
   schema: z.object({
     title: z.string(),
     description: z.string(),
