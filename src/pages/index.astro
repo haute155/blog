@@ -13,26 +13,23 @@ const latestPosts = posts.slice(0, 3);
 const seriesNames = await getSeriesNameMap();
 ---
 
-<BaseLayout
-  title="개발자 오뜨의 Blog"
-  description="프론트엔드와 웹 개발 기록을 남기는 Astro 기술 블로그"
->
+<BaseLayout>
   <!-- Hero -->
   <section class="pt-[72px] pb-12">
     <div class="container">
       <div
         class="bg-brand-soft text-brand inline-flex items-center rounded-full px-[14px] py-2 text-sm font-bold"
       >
-        개발자 오뜨
+        ☕ 개발자 오뜨
       </div>
       <h1
         class="mt-[18px] mb-3 text-[clamp(40px,6vw,68px)] leading-[1.05] font-extrabold tracking-[-0.04em]"
       >
-        깔끔하고 빠른 Astro 기술 블로그
+        커피 한 잔과 읽는<br />웹 개발 이야기
       </h1>
       <p class="text-muted max-w-[760px] text-lg">
-        프론트엔드 개발, UI 엔지니어링, 웹 성능, 개발 회고를 정리하기 위한 전형적인 블로그
-        구조입니다.
+        렌더링, 프레임워크, 웹의 원리를 파고드는 긴 호흡의 글을 씁니다. 한 편이 커피 한 잔
+        분량이에요.
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
         <a

@@ -18,13 +18,16 @@ interface Props {
 }
 
 const {
-  title = SITE_TITLE,
+  title,
   description = SITE_DESCRIPTION,
   ogType = "website",
   image = "/og-default.png",
   publishedTime,
   modifiedTime,
 } = Astro.props;
+
+// 페이지 제목에 사이트명 접미사 자동 부착
+const pageTitle = title ? `${title} | ${SITE_TITLE}` : SITE_TITLE;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const imageURL = new URL(image, Astro.site);
@@ -37,7 +40,7 @@ const imageURL = new URL(image, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
 
-    <title>{title}</title>
+    <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
 
@@ -48,7 +51,7 @@ const imageURL = new URL(image, Astro.site);
 
     <!-- OpenGraph -->
     <meta property="og:site_name" content={SITE_TITLE} />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonicalURL} />
@@ -63,7 +66,7 @@ const imageURL = new URL(image, Astro.site);
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
+    <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={imageURL} />
 
