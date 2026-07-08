@@ -33,13 +33,13 @@ const seriesNames = await getSeriesNameMap();
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
         <a
-          href="/blog"
+          href="/posts"
           class="bg-brand hover:bg-brand-dark inline-flex h-[46px] items-center justify-center rounded-full px-[18px] font-bold text-white shadow-button transition-colors duration-200"
         >
           글 보러가기
         </a>
         <a
-          href="/blog"
+          href="/posts"
           class="border-line hover:border-brand/40 inline-flex h-[46px] items-center justify-center rounded-full bg-surface border px-[18px] font-bold transition-colors duration-200"
         >
           전체 글 보기
@@ -60,7 +60,7 @@ const seriesNames = await getSeriesNameMap();
         {
           latestPosts.map((post) => (
             <PostCard
-              href={`/blog/${post.id}`}
+              href={`/posts/${post.id}`}
               title={post.data.title}
               description={post.data.description}
               pubDate={formatDate(post.data.pubDate)}

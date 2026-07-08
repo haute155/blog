@@ -28,7 +28,7 @@ const activeChip = "border-brand bg-brand text-white";
 ---
 
 <nav aria-label="태그 필터" class="flex flex-wrap gap-2">
-  <a href="/blog" class:list={[baseChip, activeTag ? inactiveChip : activeChip]}> 전체 </a>
+  <a href="/posts" class:list={[baseChip, activeTag ? inactiveChip : activeChip]}> 전체 </a>
   {
     tags.map(([tag, count]) => (
       <a

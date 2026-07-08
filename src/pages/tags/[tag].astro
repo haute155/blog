@@ -49,7 +49,7 @@ const seriesNames = await getSeriesNameMap();
         {
           posts.map((post) => (
             <PostCard
-              href={`/blog/${post.id}`}
+              href={`/posts/${post.id}`}
               title={post.data.title}
               description={post.data.description}
               pubDate={formatDate(post.data.pubDate)}

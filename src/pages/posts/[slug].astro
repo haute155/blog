@@ -54,7 +54,7 @@ const jsonLd = {
   title={post.data.title}
   description={post.data.description}
   ogType="article"
-  image={`/og/blog/${post.id}.png`}
+  image={`/og/posts/${post.id}.png`}
   publishedTime={post.data.pubDate}
   modifiedTime={post.data.updatedDate}
 >
@@ -115,7 +115,7 @@ const jsonLd = {
                       {p.data.title}
                     </span>
                   ) : (
-                    <a href={`/blog/${p.id}`} class="text-muted hover:text-brand transition-colors">
+                    <a href={`/posts/${p.id}`} class="text-muted hover:text-brand transition-colors">
                       {p.data.title}
                     </a>
                   )}
@@ -161,7 +161,7 @@ const jsonLd = {
             <div class="grid grid-cols-3 gap-5 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1">
               {relatedPosts.map((related) => (
                 <PostCard
-                  href={`/blog/${related.id}`}
+                  href={`/posts/${related.id}`}
                   title={related.data.title}
                   description={related.data.description}
                   pubDate={formatDate(related.data.pubDate)}
@@ -179,7 +179,7 @@ const jsonLd = {
         {
           prevPost ? (
             <a
-              href={`/blog/${prevPost.id}`}
+              href={`/posts/${prevPost.id}`}
               class="border-line-brand bg-surface/90 hover:border-brand/25 rounded-2xl border p-5 transition-colors"
             >
               <div class="text-muted mb-1 text-sm">← 이전 글</div>
@@ -192,7 +192,7 @@ const jsonLd = {
         {
           nextPost && (
             <a
-              href={`/blog/${nextPost.id}`}
+              href={`/posts/${nextPost.id}`}
               class="border-line-brand bg-surface/90 hover:border-brand/25 rounded-2xl border p-5 text-right transition-colors"
             >
               <div class="text-muted mb-1 text-sm">다음 글 →</div>
