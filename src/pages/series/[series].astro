@@ -2,7 +2,6 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getAllSeries } from "../../utils/series";
 import { formatDate } from "../../utils/date";
-import { getReadingTime } from "../../utils/readingTime";
 
 export async function getStaticPaths() {
   const allSeries = await getAllSeries();
@@ -56,8 +55,6 @@ const { series } = Astro.props;
                     <time datetime={post.data.pubDate.toISOString()}>
                       {formatDate(post.data.pubDate)}
                     </time>
-                    <span aria-hidden="true"> · </span>
-                    {getReadingTime(post.body)}분 읽기
                   </p>
                 </div>
               </a>
