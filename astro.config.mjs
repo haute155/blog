@@ -6,7 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   // 커스텀 도메인을 붙이면 이 값만 바꾸면 canonical/sitemap/RSS/robots가 전부 따라온다
-  site: "https://blog.sherlockyu155.workers.dev",
+  site: "https://blog.haute155.workers.dev",
   integrations: [mdx(), sitemap(), pagefind()],
   markdown: {
     shikiConfig: {
