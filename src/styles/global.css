@@ -228,6 +228,7 @@ a {
 
 /* 코드 블록 (Shiki) — 인라인 코드 스타일 초기화 */
 .prose pre {
+  position: relative;
   margin-block: 1.4em;
   padding: 20px;
   border-radius: 16px;
@@ -235,6 +236,62 @@ a {
   overflow-x: auto;
   font-size: 0.9em;
   line-height: 1.7;
+}
+
+/* ```lang title="..." 로 지정한 파일명 라벨 */
+.prose pre[data-title] {
+  padding-top: 44px;
+}
+
+.prose pre[data-title]::before {
+  content: attr(data-title);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--c-line);
+  color: var(--c-muted);
+  font-size: 0.85em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+/* 복사 버튼 (스크립트가 주입) */
+.code-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  background: var(--c-surface);
+  color: var(--c-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+  cursor: pointer;
+}
+
+.prose pre:hover .code-copy-btn,
+.code-copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.code-copy-btn:hover {
+  color: var(--c-brand);
+}
+
+.code-copy-btn.copied {
+  color: var(--c-brand);
+  opacity: 1;
 }
 
 .prose pre code {

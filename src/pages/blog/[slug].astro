@@ -4,7 +4,11 @@ import { getCollection, render } from "astro:content";
 import * as mdxComponents from "../../components/mdx/index";
 import { formatDate } from "../../utils/date";
 import { getSeriesById } from "../../utils/series";
+import { getRelatedPosts } from "../../utils/related";
 import { SITE_AUTHOR } from "../../consts";
+import ShareButtons from "../../components/ShareButtons.astro";
+import CodeCopy from "../../components/CodeCopy.astro";
+import PostCard from "../../components/PostCard.astro";
 
 export async function getStaticPaths() {
   const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
@@ -18,11 +22,12 @@ export async function getStaticPaths() {
       // 최신순 정렬이므로 이전 글 = 다음 인덱스
       prevPost: posts[i + 1] ?? null,
       nextPost: posts[i - 1] ?? null,
+      relatedPosts: getRelatedPosts(post, posts),
     },
   }));
 }
 
-const { post, prevPost, nextPost } = Astro.props;
+const { post, prevPost, nextPost, relatedPosts } = Astro.props;
 const { Content, headings } = await render(post);
 
 const series = post.data.series ? await getSeriesById(post.data.series.id) : undefined;
@@ -73,6 +78,16 @@ const jsonLd = {
       </h1>
       <div class="text-muted text-sm">
         <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+        {
+          post.data.updatedDate && post.data.updatedDate > post.data.pubDate && (
+            <>
+              <span aria-hidden="true"> · </span>
+              <time datetime={post.data.updatedDate.toISOString()}>
+                {formatDate(post.data.updatedDate)} 수정
+              </time>
+            </>
+          )
+        }
       </div>
 
       {
@@ -135,6 +150,27 @@ const jsonLd = {
         <Content components={mdxComponents} />
       </div>
 
+      <ShareButtons title={post.data.title} />
+
+      {
+        relatedPosts.length > 0 && (
+          <section aria-label="관련 글" class="mt-12" data-pagefind-ignore>
+            <h2 class="text-text mb-4 text-xl font-extrabold">이런 글도 있어요</h2>
+            <div class="grid grid-cols-3 gap-5 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1">
+              {relatedPosts.map((related) => (
+                <PostCard
+                  href={`/blog/${related.id}`}
+                  title={related.data.title}
+                  description={related.data.description}
+                  pubDate={formatDate(related.data.pubDate)}
+                  tag={related.data.tags[0]}
+                />
+              ))}
+            </div>
+          </section>
+        )
+      }
+
       <nav aria-label="이전/다음 글" class="mt-10 grid grid-cols-2 gap-4 max-sm:grid-cols-1">
         {
           prevPost ? (
@@ -185,6 +221,7 @@ const jsonLd = {
       )
     }
   </article>
+  <CodeCopy />
 </BaseLayout>
 
 <style>

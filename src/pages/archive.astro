@@ -1,0 +1,59 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import { formatDate } from "../utils/date";
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+const byYear = new Map<number, typeof posts>();
+for (const post of posts) {
+  const year = post.data.pubDate.getFullYear();
+  byYear.set(year, [...(byYear.get(year) ?? []), post]);
+}
+const years = [...byYear.entries()].sort((a, b) => b[0] - a[0]);
+---
+
+<BaseLayout title="Archive | Azure Notes" description="연도별 전체 글 목록">
+  <section class="pt-8 pb-16">
+    <div class="container max-w-[760px]">
+      <div class="mb-8">
+        <h1 class="mb-2 text-[clamp(30px,4vw,44px)] font-extrabold tracking-[-0.03em]">Archive</h1>
+        <p class="text-muted">전체 {posts.length}개의 글을 연도별로 모았습니다.</p>
+      </div>
+
+      {
+        years.length === 0 ? (
+          <p class="text-muted">아직 발행된 글이 없습니다.</p>
+        ) : (
+          years.map(([year, yearPosts]) => (
+            <section class="mb-10">
+              <h2 class="text-brand mb-4 text-2xl font-extrabold">{year}</h2>
+              <ul class="space-y-3">
+                {yearPosts.map((post) => (
+                  <li>
+                    <a
+                      href={`/blog/${post.id}`}
+                      class="group flex items-baseline justify-between gap-4"
+                    >
+                      <span class="text-text group-hover:text-brand font-semibold transition-colors">
+                        {post.data.title}
+                      </span>
+                      <time
+                        datetime={post.data.pubDate.toISOString()}
+                        class="text-muted shrink-0 text-sm"
+                      >
+                        {formatDate(post.data.pubDate)}
+                      </time>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>

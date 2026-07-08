@@ -1,0 +1,65 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const url = new URL(Astro.url.pathname, Astro.site).href;
+const xShareUrl = `https://x.com/intent/post?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+---
+
+<div class="mt-8 flex items-center gap-2" data-pagefind-ignore>
+  <span class="text-muted mr-1 text-sm font-semibold">공유하기</span>
+  <button
+    type="button"
+    data-copy-link={url}
+    class="border-line-brand bg-surface/90 text-muted hover:border-brand/40 hover:text-brand inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors"
+  >
+    <svg
+      class="h-4 w-4"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      viewBox="0 0 24 24"
+    >
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+    </svg>
+    <span data-copy-label>링크 복사</span>
+  </button>
+  <a
+    href={xShareUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="border-line-brand bg-surface/90 text-muted hover:border-brand/40 hover:text-brand inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors"
+  >
+    <svg class="h-3.5 w-3.5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+      <path
+        d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.4l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.6l5.24 6.93ZM17.61 20.64h2.04L6.49 3.24H4.3Z"
+      ></path>
+    </svg>
+    X에 공유
+  </a>
+</div>
+
+<script>
+  // 이벤트 위임 — View Transitions에도 안전
+  document.addEventListener("click", async (e) => {
+    const button = (e.target as Element | null)?.closest("[data-copy-link]");
+    if (!(button instanceof HTMLElement)) return;
+
+    try {
+      await navigator.clipboard.writeText(button.dataset.copyLink ?? "");
+      const label = button.querySelector("[data-copy-label]");
+      if (label) {
+        label.textContent = "복사됐어요!";
+        setTimeout(() => (label.textContent = "링크 복사"), 2000);
+      }
+    } catch {
+      /* clipboard 미지원 환경 — 조용히 무시 */
+    }
+  });
+</script>

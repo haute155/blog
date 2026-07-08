@@ -1,0 +1,37 @@
+<script>
+  // .prose 안의 모든 코드 블록에 복사 버튼을 주입한다.
+  // View Transitions로 페이지가 바뀔 때마다 새 DOM에 다시 주입.
+  function injectCopyButtons() {
+    for (const pre of document.querySelectorAll(".prose pre")) {
+      if (pre.querySelector(".code-copy-btn")) continue;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "code-copy-btn";
+      button.textContent = "복사";
+      button.setAttribute("aria-label", "코드 복사");
+      pre.appendChild(button);
+    }
+  }
+
+  document.addEventListener("click", async (e) => {
+    const button = (e.target as Element | null)?.closest(".code-copy-btn");
+    if (!(button instanceof HTMLElement)) return;
+
+    const code = button.closest("pre")?.querySelector("code")?.innerText ?? "";
+    try {
+      await navigator.clipboard.writeText(code);
+      button.textContent = "복사됨!";
+      button.classList.add("copied");
+      setTimeout(() => {
+        button.textContent = "복사";
+        button.classList.remove("copied");
+      }, 2000);
+    } catch {
+      /* clipboard 미지원 — 무시 */
+    }
+  });
+
+  injectCopyButtons();
+  document.addEventListener("astro:page-load", injectCopyButtons);
+</script>
