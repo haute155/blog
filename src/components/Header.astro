@@ -1,7 +1,6 @@
 ---
 const navItems = [
   { href: "/posts", label: "Posts" },
-  { href: "/series", label: "Series" },
   { href: "/notes", label: "Notes" },
   { href: "/about", label: "About" },
 ];
@@ -12,7 +11,7 @@ const isActive = (href: string) =>
 ---
 
 <header
-  class="border-line-brand bg-surface/80 sticky top-0 z-30 border-b backdrop-blur-[12px]"
+  class="border-line-brand bg-bg/85 sticky top-0 z-30 border-b backdrop-blur-[12px]"
 >
   <div
     class="container flex h-[72px] items-center justify-between max-sm:h-auto max-sm:flex-col max-sm:items-start max-sm:gap-3 max-sm:py-4"
@@ -41,7 +40,7 @@ const isActive = (href: string) =>
           <path d="M6 2v2"></path>
         </svg>
       </span>
-      <span>오뜨와 커피 한 잔</span>
+      <span>오뜨와 아아</span>
     </a>
 
     <div class="flex items-center gap-5">
@@ -121,7 +120,7 @@ const isActive = (href: string) =>
 </header>
 
 <script>
-  // 이벤트 위임 방식이라 View Transitions로 DOM이 교체돼도 계속 동작한다.
+  // 이벤트 위임 — 문서 전역에서 한 번만 바인딩
   document.addEventListener("click", (e) => {
     const target = e.target as Element | null;
     if (!target?.closest("#theme-toggle")) return;

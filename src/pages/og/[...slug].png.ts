@@ -36,7 +36,7 @@ export async function getStaticPaths() {
         title: note.data.title,
         description: note.data.description,
         tag: `🌱 ${note.data.tags[0] ?? "Note"}`,
-        date: `업데이트 ${formatDate(note.data.updatedDate)}`,
+        date: formatDate(note.data.pubDate),
       } satisfies OgProps,
     })),
   ];
@@ -119,7 +119,7 @@ function circle(size: number, top: number, left: number, opacity: number) {
       top: `${top}px`,
       left: `${left}px`,
       borderRadius: "50%",
-      background: "#007FFF",
+      background: "#B29079",
       opacity,
     },
   });
@@ -144,7 +144,7 @@ export async function GET({ props }: APIContext) {
         flexDirection: "column",
         justifyContent: "space-between",
         padding: "64px 80px",
-        background: "linear-gradient(135deg, #f8fbff 0%, #eaf4ff 100%)",
+        background: "linear-gradient(135deg, #f6f5ec 0%, #efe7da 100%)",
         fontFamily: "Pretendard",
         overflow: "hidden",
       },
@@ -166,7 +166,7 @@ export async function GET({ props }: APIContext) {
             width: "68px",
             height: "68px",
             borderRadius: "18px",
-            background: "linear-gradient(135deg, #007FFF, #59AFFF)",
+            background: "linear-gradient(135deg, #B29079, #D4B79F)",
           },
         },
         coffeeCup,
@@ -176,7 +176,7 @@ export async function GET({ props }: APIContext) {
         {
           style: {
             display: "flex",
-            color: "#111827",
+            color: "#3e332b",
             fontSize: "32px",
             fontWeight: 800,
           },
@@ -201,7 +201,7 @@ export async function GET({ props }: APIContext) {
         {
           style: {
             display: "flex",
-            color: "#111827",
+            color: "#3e332b",
             fontSize: title.length > 40 ? "56px" : "64px",
             fontWeight: 800,
             lineHeight: 1.25,
@@ -216,7 +216,7 @@ export async function GET({ props }: APIContext) {
         {
           style: {
             display: "flex",
-            color: "#6b7280",
+            color: "#8a7a6b",
             fontSize: "28px",
             fontWeight: 500,
             lineHeight: 1.5,
@@ -238,7 +238,7 @@ export async function GET({ props }: APIContext) {
             display: "flex",
             padding: "10px 22px",
             borderRadius: "999px",
-            background: "#007FFF",
+            background: "#B29079",
             color: "#ffffff",
             fontSize: "24px",
             fontWeight: 700,
@@ -251,7 +251,7 @@ export async function GET({ props }: APIContext) {
         {
           style: {
             display: "flex",
-            color: "#6b7280",
+            color: "#8a7a6b",
             fontSize: "24px",
             fontWeight: 500,
           },
@@ -263,7 +263,7 @@ export async function GET({ props }: APIContext) {
           width: "140px",
           height: "6px",
           borderRadius: "3px",
-          background: "#007FFF",
+          background: "#B29079",
           marginLeft: "8px",
         },
       }),
