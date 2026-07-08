@@ -121,14 +121,10 @@ const jsonLd = {
             data-pagefind-ignore
           >
             <p class="text-text mb-2 text-sm font-extrabold tracking-wide uppercase">목차</p>
-            <ul class="space-y-1.5 text-[15px]">
+            <ul class="toc-list text-[15px]">
               {toc.map((heading) => (
-                <li class:list={[heading.depth === 3 && "pl-4"]}>
-                  <a
-                    href={`#${heading.slug}`}
-                    data-toc-link={heading.slug}
-                    class="text-muted hover:text-brand transition-colors"
-                  >
+                <li data-depth={heading.depth}>
+                  <a href={`#${heading.slug}`} data-toc-link={heading.slug}>
                     {heading.text}
                   </a>
                 </li>
@@ -179,14 +175,10 @@ const jsonLd = {
           class="border-line-brand bg-surface/95 shadow-card fixed top-1/2 left-[calc(50%+380px+28px)] z-20 hidden w-[230px] rounded-2xl border p-4 backdrop-blur-sm xl:block"
         >
           <p class="text-text mb-2 text-xs font-extrabold tracking-wide uppercase">목차</p>
-          <ul class="max-h-[60vh] space-y-1 overflow-y-auto text-[13px] leading-snug">
+          <ul class="toc-list max-h-[60vh] overflow-y-auto text-[13.5px] leading-snug">
             {toc.map((heading) => (
-              <li class:list={[heading.depth === 3 && "pl-3"]}>
-                <a
-                  href={`#${heading.slug}`}
-                  data-toc-link={heading.slug}
-                  class="text-muted hover:text-brand block py-0.5 transition-colors"
-                >
+              <li data-depth={heading.depth}>
+                <a href={`#${heading.slug}`} data-toc-link={heading.slug}>
                   {heading.text}
                 </a>
               </li>
@@ -199,6 +191,45 @@ const jsonLd = {
 </BaseLayout>
 
 <style>
+  /* ─── 목차 위계: h2는 진하고 크게, h3는 연하고 작게 들여쓰기 ─── */
+  .toc-list a {
+    display: block;
+    padding-block: 2px;
+    color: var(--c-muted);
+    transition: color 0.15s ease;
+  }
+
+  .toc-list a:hover {
+    color: var(--c-brand);
+  }
+
+  .toc-list li[data-depth="2"] > a {
+    color: var(--c-text);
+    font-weight: 650;
+  }
+
+  /* h2 그룹 사이 간격 (첫 항목 제외) */
+  .toc-list li[data-depth="2"]:not(:first-child) {
+    margin-top: 0.7em;
+  }
+
+  .toc-list li[data-depth="3"] > a {
+    font-size: 0.88em;
+    padding-left: 1.1em;
+    border-left: 2px solid var(--c-line);
+    margin-left: 0.15em;
+  }
+
+  /* 현재 읽는 섹션 */
+  .toc-list a.toc-active {
+    color: var(--c-brand);
+    font-weight: 700;
+  }
+
+  .toc-list li[data-depth="3"] > a.toc-active {
+    border-left-color: var(--c-brand);
+  }
+
   /* 숨김 상태: 오른쪽에 살짝 밀려 있다가 */
   #toc-floating {
     opacity: 0;
@@ -264,10 +295,7 @@ const jsonLd = {
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
       if (nearBottom) currentId = headings[headings.length - 1]?.id;
       for (const link of links) {
-        const active = link.getAttribute("data-toc-link") === currentId;
-        link.classList.toggle("text-brand", active);
-        link.classList.toggle("font-bold", active);
-        link.classList.toggle("text-muted", !active);
+        link.classList.toggle("toc-active", link.getAttribute("data-toc-link") === currentId);
       }
     }
 
