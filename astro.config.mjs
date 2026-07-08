@@ -5,8 +5,8 @@ import pagefind from "astro-pagefind";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  // TODO: 실제 배포 도메인으로 교체 (sitemap/RSS/canonical URL이 이 값을 사용)
-  site: "https://example.com",
+  // 커스텀 도메인을 붙이면 이 값만 바꾸면 canonical/sitemap/RSS/robots가 전부 따라온다
+  site: "https://blog.sherlockyu155.workers.dev",
   integrations: [mdx(), sitemap(), pagefind()],
   markdown: {
     shikiConfig: {
