@@ -43,7 +43,7 @@
 </dialog>
 
 <script>
-  // 모두 이벤트 위임 — View Transitions로 DOM이 교체돼도 계속 동작한다.
+  // 이벤트 위임 — 문서 전역에서 한 번만 바인딩
   const MAX_RESULTS = 8;
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let searchSeq = 0; // 늦게 도착한 이전 검색 응답이 최신 결과를 덮어쓰지 않도록

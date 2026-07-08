@@ -1,6 +1,5 @@
 ---
 import "../styles/global.css";
-import { ClientRouter } from "astro:transitions";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import SearchModal from "../components/SearchModal.astro";
@@ -70,8 +69,7 @@ const imageURL = new URL(image, Astro.site);
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={imageURL} />
 
-    <meta name="theme-color" content="#007FFF" />
-    <ClientRouter />
+    <meta name="theme-color" content="#B29079" />
 
     <!-- FOUC 방지: 첫 페인트 전에 저장된 테마를 적용해야 해서 인라인으로 실행 -->
     <script is:inline>
@@ -83,8 +81,6 @@ const imageURL = new URL(image, Astro.site);
           document.documentElement.dataset.theme = theme;
         }
         applyTheme();
-        // View Transitions가 <html> 속성을 새 페이지 것으로 교체하므로 다시 적용
-        document.addEventListener("astro:after-swap", applyTheme);
       })();
     </script>
 

@@ -1,6 +1,5 @@
 <script>
   // .prose 안의 모든 코드 블록에 복사 버튼을 주입한다.
-  // View Transitions로 페이지가 바뀔 때마다 새 DOM에 다시 주입.
   function injectCopyButtons() {
     for (const pre of document.querySelectorAll(".prose pre")) {
       if (pre.querySelector(".code-copy-btn")) continue;
@@ -33,5 +32,4 @@
   });
 
   injectCopyButtons();
-  document.addEventListener("astro:page-load", injectCopyButtons);
 </script>

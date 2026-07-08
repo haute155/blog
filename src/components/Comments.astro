@@ -16,7 +16,6 @@ import { GISCUS } from "../consts";
 
 <script>
   // 현재 테마에 맞춰 giscus를 로드하고, 다크모드 토글 시 iframe에 테마 변경을 전달한다.
-  // View Transitions로 페이지가 바뀌면 컨테이너가 새로 그려지므로 다시 주입.
   function currentTheme() {
     return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   }
@@ -61,5 +60,4 @@ import { GISCUS } from "../consts";
   });
 
   mountGiscus();
-  document.addEventListener("astro:page-load", mountGiscus);
 </script>
