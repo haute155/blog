@@ -1,0 +1,286 @@
+---
+title: "Next.js는 왜 params까지 await 하게 만들었을까"
+description: "await props.params, fetch 기본 비캐시화, 그리고 Cache Components — 흩어져 보이는 Next.js 15/16의 변경들이 '정적과 동적의 경계를 코드로 선언하게 만든다'는 하나의 설계 방향으로 수렴하는 과정을 추적합니다."
+pubDate: "2026-07-08"
+tags: ["Next.js", "Frontend"]
+---
+
+Next.js 15로 올리면서 가장 먼저 마주치는 것은 이 에러입니다.
+
+```text
+Error: Route "/products/[id]" used `params.id`.
+`params` should be awaited before using its properties.
+```
+
+`params`는 라우터가 URL을 파싱한 결과입니다. 요청이 서버에 도착한 시점에 이미 존재하는 값입니다. 그런데 왜 Promise로 감쌌을까요? 이것을 "프레임워크가 또 쓸데없이 API를 뒤집었다"로 받아들이면, Next.js 15/16에서 일어나고 있는 변화의 방향 전체를 놓치게 됩니다.
+
+이 글의 주장은 이렇습니다. **Next 15/16의 렌더링·캐싱 관련 breaking change들 — async request API, fetch 기본 비캐시화, `dynamicIO`/`experimental_ppr` 플래그의 통합 — 은 전부 하나의 설계 방향으로 수렴합니다. "정적과 동적의 경계를 개발자가 코드로 선언하게 만든다"는 것이고, 그 공식적 종착점이 Cache Components입니다.**
+
+
+## 문제의 근원: "이 컴포넌트는 언제 렌더링 가능한가"를 컴파일러가 알 수 없었다
+
+### 동기 API가 만든 암묵적 가정
+
+Next 14까지 `cookies()`는 동기 함수였습니다.
+
+```tsx
+import { cookies } from "next/headers";
+
+function getTheme() {
+  return cookies().get("theme")?.value ?? "light";
+}
+```
+
+이 코드는 겉보기에 무해하지만, 타입 시그니처가 거짓말을 하고 있습니다. `cookies(): ReadonlyRequestCookies`라는 시그니처는 "언제 어디서든 호출하면 쿠키가 나온다"고 말합니다. 하지만 쿠키는 **요청이 도착해야만 존재하는 값**입니다. 빌드 타임 프리렌더링 중에는 요청이 없습니다.
+
+Next.js는 이 모순을 런타임 트릭으로 해결해왔습니다. 프리렌더링 중에 `cookies()`가 호출되면 내부적으로 예외를 던져 렌더링을 중단하고, 해당 라우트 전체를 동적 렌더링으로 강등(bail out)시키는 방식입니다. 문제는 이 강등이 **호출 지점이 아니라 라우트 전체에 적용**된다는 것입니다.
+
+### 트리 오염(tree contamination) 시나리오
+
+실무에서 이 구조가 어떻게 사고를 치는지 봅시다.
+
+```tsx
+// app/products/[id]/page.tsx
+export async function generateStaticParams() {
+  const products = await getTopProducts();
+  return products.map((p) => ({ id: p.id }));
+}
+
+export default async function ProductPage({ params }) {
+  return (
+    <>
+      <ProductDetail id={params.id} />
+      <RecentlyViewed /> {/* 문제의 컴포넌트 */}
+    </>
+  );
+}
+```
+
+```tsx
+// components/RecentlyViewed.tsx — 3뎁스 아래 어딘가
+import { cookies } from "next/headers";
+
+export async function RecentlyViewed() {
+  const viewed = cookies().get("recently_viewed"); // Next 14 스타일
+  // ...
+}
+```
+
+`generateStaticParams`로 인기 상품 페이지를 빌드 타임에 프리렌더링하려 했지만, 트리 깊숙한 곳의 `RecentlyViewed`가 `cookies()`를 호출하는 순간 **페이지 전체가 동적으로 강등됩니다**. 빌드 로그에서 `ƒ (Dynamic)` 마크를 보고 나서야 원인을 추적하게 되는데, 호출 지점이 3뎁스 아래라면 grep 없이는 찾기 어렵습니다.
+
+핵심 문제를 정리하면 — Next 13/14의 정적 판별은 **"렌더링을 실행해보고 dynamic function 호출이 감지되면 강등"하는 휴리스틱**이었습니다. 컴파일러도, 타입 시스템도, 개발자도 렌더링 전에는 이 페이지가 정적인지 동적인지 알 수 없었습니다. 경계가 코드에 없고 런타임 동작에 숨어 있었기 때문입니다.
+
+## 해법 1 — request-time 의존성의 타입 레벨 명시화 (Next 15)
+
+### `Promise<T>`의 의미론
+
+Next 15는 request-time API 전체를 비동기로 전환했습니다. `cookies()`, `headers()`, `draftMode()`, 그리고 `params`/`searchParams`까지.
+
+```tsx
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function ProductPage(props: Props) {
+  const { id } = await props.params;
+  const { variant } = await props.searchParams;
+  // ...
+}
+```
+
+여기서 `Promise`는 단순히 "비동기 I/O"를 의미하지 않습니다. **"이 값은 요청이 와야 resolve된다"는 시간적 의존성의 선언**입니다. 타입 시그니처가 더 이상 거짓말을 하지 않게 된 것입니다.
+
+이 전환이 열어주는 최적화 공간이 중요합니다. `params`가 동기 값이면 렌더러는 요청이 도착해 URL이 확정될 때까지 컴포넌트 실행 자체를 시작할 수 없습니다. 하지만 Promise라면? **아직 resolve되지 않은 Promise를 props로 흘려보내면서, `await`에 도달하기 전까지의 작업을 미리 실행할 수 있습니다.** 정적인 부분은 요청 전에(즉 빌드 타임에) 렌더링하고, `await props.params` 이후만 request-time으로 미루는 것 — 이것이 뒤에서 다룰 PPR의 전제 조건입니다.
+
+### 서버의 `await` vs 클라이언트의 `use()` — 왜 갈라지는가
+
+클라이언트 컴포넌트는 async function이 될 수 없습니다. 렌더링이 동기적이어야 하고, re-render마다 새 Promise가 생기는 문제가 있기 때문입니다. 그래서 React 19의 `use()` 훅으로 언랩합니다.
+
+```tsx
+"use client";
+import { use } from "react";
+
+export default function Filters(props: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
+  const { sort } = use(props.searchParams);
+  // ...
+}
+```
+
+`use()`는 Promise가 pending이면 가장 가까운 Suspense boundary로 suspend합니다. 즉 **서버에서 클라이언트로 Promise를 직렬화해 넘기고, 클라이언트에서 그 resolve를 기다리는 스트리밍 패턴**이 API 차원에서 성립합니다. `await`(서버, 실행 중단)와 `use()`(클라이언트, Suspense 통합)의 분기는 임의가 아니라 각 환경의 렌더링 모델을 반영한 것입니다.
+
+### 같은 Promise를 공유할 때의 동작
+
+한 가지 미묘한 지점이 있습니다. `generateMetadata`와 Page가 같은 요청의 `searchParams`를 각각 받습니다.
+
+```tsx
+export async function generateMetadata(props: Props) {
+  const { q } = await props.searchParams;
+  return { title: `검색: ${q}` };
+}
+
+export default async function SearchPage(props: Props) {
+  const { q } = await props.searchParams;
+  // ...
+}
+```
+
+두 곳에서 `await`해도 요청 파싱이 두 번 일어나지는 않습니다 — 같은 요청 스코프의 Promise는 동일 인스턴스이고 resolve는 한 번입니다. 반면 이 Promise를 `React.cache()` 없이 모듈 스코프 어딘가에 저장하려 들면 요청 간 오염이 생깁니다. **request-time 값은 반드시 props 체인이나 요청 스코프 API를 통해서만 흘러야 한다**는 원칙이 타입으로 강제되기 시작한 것입니다.
+
+## 해법 2 — 캐싱의 암묵 → 명시 전환 (Next 15)
+
+### `fetch` 기본값의 반전
+
+Next 13/14의 `fetch`는 기본이 `force-cache`였습니다. 명시하지 않으면 캐시됐습니다. Next 15는 이것을 뒤집었습니다 — 기본이 `no-store`입니다. GET Route Handler도 마찬가지로 기본 비캐시가 됐습니다.
+
+이것은 async API 전환과 정확히 같은 방향의 변경입니다. **"프레임워크가 알아서 캐시해준다"(암묵)에서 "캐시하려면 선언하라"(명시)로.**
+
+```tsx
+// Next 14: 이 요청은 몰래 캐시되고 있었다
+const res = await fetch("https://api.example.com/inventory");
+
+// Next 15: 캐시하려면 의도를 코드로 남겨야 한다
+const res = await fetch("https://api.example.com/inventory", {
+  next: { revalidate: 60, tags: ["inventory"] },
+});
+```
+
+### 책임의 이동: 캐시 무효화 버그 → 성능 저하
+
+이 반전의 본질은 **버그의 종류를 바꾼 것**입니다.
+
+- **기본 캐시 + opt-out** 체제의 실패 모드: "왜 재고가 어제 값이지?" — 데이터 정합성 버그. 발견이 늦고, 원인 추적이 어렵고, 비즈니스 피해가 직접적입니다.
+- **기본 비캐시 + opt-in** 체제의 실패 모드: "왜 이 페이지 느리지?" — 성능 문제. 모니터링에 즉시 잡히고, 해결책(`revalidate` 추가)이 국소적입니다.
+
+14→15 마이그레이션에서 터지는 전형적 패턴이 이것의 역방향입니다. 암묵 캐시에 기대던 코드 — 예컨대 여러 컴포넌트에서 같은 API를 중복 호출하지만 "어차피 캐시되니까"로 방치했던 코드 — 가 15에서 매 렌더마다 N번의 실제 네트워크 요청으로 바뀝니다. 해결은 `React.cache()`(요청 내 dedupe)나 명시적 `fetch` 캐시 옵션인데, 어느 쪽이든 **"이 데이터의 수명은 얼마인가"를 개발자가 답해야 합니다.** 프레임워크는 더 이상 대신 답해주지 않습니다.
+
+## 수렴점 — Cache Components: `'use cache'`와 Suspense가 그리는 경계 (Next 16)
+
+### 플래그 통합이 말해주는 것
+
+Next 16에서 두 개의 실험 플래그가 사라졌습니다. `experimental.dynamicIO`도, 라우트별 `experimental_ppr`도 제거되고 `cacheComponents: true` 하나로 통합됐습니다.
+
+```ts
+// next.config.ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+};
+
+export default nextConfig;
+```
+
+플래그 통합은 사소해 보이지만 방향성의 증거입니다. "동적 I/O의 명시화"(dynamicIO)와 "부분 프리렌더링"(PPR)이 별개 기능이 아니라 **하나의 모델의 두 측면**이라는 것을 Vercel이 공식화한 것입니다. 그 모델이 Cache Components입니다.
+
+### 경계를 그리는 두 개의 프리미티브
+
+Cache Components 모델에서 개발자는 두 가지 도구로 페이지를 삼분합니다.
+
+1. **`'use cache'`** — "이 함수/컴포넌트의 결과는 캐시 가능하다"는 선언. `cacheLife`로 수명을, `cacheTag`로 무효화 단위를 지정합니다.
+2. **`<Suspense>`** — "이 안쪽은 request-time이다"는 선언. fallback이 곧 정적 셸과 동적 콘텐츠의 경계선이 됩니다.
+
+PPR의 실제 동작은 이렇습니다. 빌드 타임에 정적 콘텐츠와 Suspense fallback까지를 렌더링해 CDN에 배포하고, 요청이 오면 프리렌더된 셸을 즉시 서빙하면서 동적 부분을 서버에서 렌더링해 같은 HTTP 응답 안에서 스트리밍으로 끼워 넣습니다. TTFB는 정적 페이지, 콘텐츠는 동적 페이지 — 기존의 "라우트 단위 정적/동적 이분법"이 컴포넌트 단위로 쪼개지는 것입니다.
+
+### 예시: 커머스 상품 페이지의 삼분할
+
+상품 페이지는 이 모델의 교과서적 케이스입니다. 하나의 페이지에 수명이 전혀 다른 데이터가 공존하기 때문입니다.
+
+```tsx
+// app/products/[id]/page.tsx
+import { Suspense } from "react";
+import { cacheLife, cacheTag } from "next/cache";
+import { cookies } from "next/headers";
+
+// ── 캐시 계층: 상품 정보 (수명: 시간 단위, 상품 수정 시 무효화)
+async function getProduct(id: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`product-${id}`);
+  return db.query.products.findFirst({ where: eq(products.id, id) });
+}
+
+// ── 동적 계층: 실시간 재고 + 개인화 가격
+async function LiveInventory({ productId }: { productId: string }) {
+  const session = (await cookies()).get("session")?.value;
+  const [stock, price] = await Promise.all([
+    getStock(productId), // 실시간, 캐시 불가
+    getPersonalizedPrice(productId, session), // 사용자별, 캐시 불가
+  ]);
+  return <PurchasePanel stock={stock} price={price} />;
+}
+
+export default async function ProductPage(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await props.params;
+  const product = await getProduct(id);
+
+  return (
+    <>
+      {/* 프리렌더 가능: 셸 + 캐시된 상품 정보 */}
+      <ProductGallery images={product.images} />
+      <ProductDescription content={product.description} />
+
+      {/* request-time 경계: fallback까지가 정적 셸 */}
+      <Suspense fallback={<PurchasePanelSkeleton />}>
+        <LiveInventory productId={id} />
+      </Suspense>
+    </>
+  );
+}
+```
+
+주목할 점들:
+
+- 상품 정보 수정 시 ``revalidateTag(`product-${id}`)`` 한 줄로 해당 상품의 캐시만 무효화됩니다. 라우트 전체 revalidate가 아닙니다.
+- `cookies()`가 `LiveInventory` 안에 있지만 **앞에서 본 트리 오염이 일어나지 않습니다.** Suspense 경계가 오염의 방화벽 역할을 합니다. request-time 의존성은 경계 안쪽에 격리되고, 바깥은 여전히 프리렌더됩니다.
+- 이 격리가 가능한 이유가 바로 async 전환입니다. `cookies()`가 Promise를 반환하기 때문에 렌더러는 "어느 `await`에서 request-time에 진입하는지"를 정확히 압니다. 동기 API 체제에서는 불가능했던 분해입니다.
+
+15의 breaking change(async API, 기본 비캐시)가 16의 Cache Components를 위한 지반 공사였다는 것이 이 예시에서 드러납니다.
+
+## 전송 계층에서 확인하기 — `_rsc` 쿼리 파라미터와 RSC Payload
+
+이 아키텍처는 네트워크 탭에서도 관찰됩니다.
+
+App Router에서 `<Link>` 클릭이나 `router.push()`로 이동하면 브라우저는 HTML 문서를 요청하지 않습니다. **RSC Payload** — 서버 컴포넌트 렌더 결과의 직렬화 포맷(React Flight) — 를 요청합니다. 이때 URL에 `?_rsc=1a2b3c` 같은 파라미터가 붙습니다.
+
+```text
+GET /products/42?_rsc=1a2b3c
+RSC: 1
+Next-Router-State-Tree: %5B%22%22%2C%7B%22children%22...
+```
+
+`_rsc`의 정체는 **캐시 버스터**입니다. 같은 URL `/products/42`에 대해 초기 로드는 HTML을, 클라이언트 네비게이션은 RSC Payload를 응답합니다. 응답 형식이 다른 두 요청이 같은 URL을 쓰면 브라우저/CDN 캐시가 오염되므로, 쿼리 파라미터로 캐시 키를 분리한 것입니다. 값은 라우터 트리 상태의 해시입니다.
+
+<Callout type="warning" title="실무 함정 세 가지">
+  <strong>① 서버 로그 오염</strong> — 애널리틱스나 액세스 로그에{" "}
+  <code>_rsc</code> 파라미터가 섞입니다. URL 기준 집계를 하고 있다면 정규화
+  필터가 필요합니다.
+  <strong>② CDN 캐시 파편화</strong> — 쿼리스트링을 캐시 키에 포함하는 CDN
+  설정에서 같은 페이지가 해시별로 파편화될 수 있습니다. RSC 요청의 캐시 정책은
+  HTML과 분리해서 설계해야 합니다.
+  <strong>③ prefetch 트래픽</strong> — 프로덕션에서 뷰포트에 들어온{" "}
+  <code>&lt;Link&gt;</code>는 자동 prefetch됩니다. 링크가 수십 개인 목록
+  페이지에서는 <code>_rsc</code> 요청이 대량 발생합니다. 서버 트래픽이 PV 대비
+  이상하게 많다면 이것부터 의심하고, 필요시{" "}
+  <code>prefetch=&#123;false&#125;</code>로 제어합니다.
+</Callout>
+
+이 전송 방식 자체가 Cache Components 모델의 물리적 구현입니다. 네비게이션 시 서버는 변경된 세그먼트의 RSC Payload만 보내고, PPR이 켜진 라우트에서는 프리렌더된 셸 부분과 스트리밍되는 동적 부분이 하나의 응답 안에서 구분됩니다. 정적/동적 경계가 코드에서 선언되고, 와이어 포맷에서 실행되는 것입니다.
+
+## 결론: 아직 opt-in이라는 것의 의미
+
+정리합시다. Next 15의 async request API와 기본 비캐시화는 그 자체로 완결된 기능이 아니라, **"어떤 코드가 request-time에 의존하고 어떤 데이터가 어떤 수명으로 캐시되는가"를 컴파일러가 알 수 있게 만드는 선언 체계**의 구축이었습니다. Next 16의 Cache Components(`'use cache'` + Suspense + PPR)는 그 선언 체계 위에서만 성립하는 렌더링 모델입니다.
+
+단, 냉정하게 짚어둘 것이 있습니다. **Cache Components는 Next 16에서도 여전히 opt-in입니다.** `cacheComponents: true`는 기본값이 아니고, 모델 자체도 계속 진화 중입니다. "종착점"은 도착지가 아니라 방향입니다.
+
+그래서 지금 마이그레이션에서 준비할 것은 플래그를 켜는 것이 아니라 다음 세 가지입니다.
+
+1. **request-time 의존성을 트리 말단으로 밀어내세요.** `cookies()`/`headers()` 호출이 최상위 레이아웃에 있다면, 그것을 사용하는 최소 단위 컴포넌트로 내리세요. 나중에 Suspense 경계를 긋는 작업이 곧 이 격리 작업입니다.
+2. **모든 데이터에 수명을 답하세요.** 암묵 캐시에 기대던 fetch마다 "이건 몇 초짜리 데이터인가"를 명시하세요. `revalidate`와 `tags`를 지금 달아두면 `'use cache'` 전환은 기계적 치환에 가까워집니다.
+3. **수명이 다른 데이터를 한 컴포넌트에서 섞지 마세요.** 상품 정보와 실시간 재고를 한 번의 쿼리로 가져오는 컴포넌트는 Cache Components 체제에서 전체가 동적으로 강등됩니다. 데이터 페칭의 분해가 곧 캐시 경계의 분해입니다.
+
+`await props.params`는 불편이 아니라 계약서입니다. 프레임워크가 개발자에게 처음으로 정직한 타입을 내밀었고, 그 계약 위에서 라우트 단위 이분법이 컴포넌트 단위 삼분법으로 바뀌고 있습니다.

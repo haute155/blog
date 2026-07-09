@@ -1,0 +1,253 @@
+---
+title: "--dense 플래그는 누구를 위한 것인가 — Meta 디자인 시스템에서 역산한 'AI를 소비자로 대하는 법'"
+description: "'AI-ready'는 선언이 아니라 구현에서 확인됩니다. Meta의 디자인 시스템 Astryx의 CLI를 뜯어 --dense, JSON 봉투, 자기 서술 매니페스트, 에러 suggestions 같은 물증을 수집하고, 라이브러리의 새 경쟁 축 AX(Agent Experience)를 이야기합니다."
+pubDate: "2026-07-09"
+tags: ["AI", "DX"]
+draft: true
+---
+
+## 마케팅 문구는 증거가 아니다
+
+요즘 나오는 라이브러리 치고 "AI-ready", "AI-friendly"를 자칭하지 않는 것이 드뭅니다. 하지만 그 대부분은 README에 문장 하나를 얹은 것에 불과합니다. 선언은 쉽고, 설계는 어렵기 때문입니다.
+
+Meta가 오픈소스로 공개한 디자인 시스템 Astryx(현재 베타)의 README에는 이런 문장이 있습니다.
+
+> "An open source design system that's fully customizable and built for how we build now — **by people and the agents working alongside them**."
+
+> "The API, docs, and CLI are designed together so **a person and an AI assistant build the same way, from the same reference**."
+
+"사람과 에이전트가 같은 참조로 같은 방식으로 빌드한다." 좋은 문장입니다. 그런데 이게 문구일까요, 설계일까요?
+
+이 글은 그 질문에 답하기 위해 문서가 아니라 **구현에서 역산**합니다. 저장소의 패키지 구조와 CLI 스펙을 뜯어서, "AI를 소비자로 대했다"는 주장이 실제 코드 레벨의 의사결정으로 뒷받침되는지 확인해봤습니다. 그리고 그 과정에서, 큰 조직이 AI 에이전트 시대에 라이브러리를 어떻게 준비하는지에 대한 꽤 구체적인 그림이 나왔습니다.
+
+## 결정적 물증: 사람에게 불필요한 기능을 찾아라
+
+역산의 원리는 단순합니다. **사람 사용자를 위해서라고는 설명할 수 없는 기능이 있다면, 그 기능은 다른 소비자의 존재를 증명합니다.** 고고학자가 유물의 용도에서 문명의 생활상을 역산하듯, 기능의 존재 이유에서 설계 시점의 사용자 페르소나를 역산할 수 있습니다.
+
+Astryx CLI에서 그 물증을 찾았습니다. 전역 옵션 중에 `--dense`가 있습니다 — 문서상 "토큰 효율적인 압축 형식(token-efficient compact format)" 출력 옵션입니다.
+
+여기서 멈춰서 생각해볼 필요가 있습니다. "토큰 효율"이라는 개념은 누구를 위한 것일까요? 사람은 터미널 출력을 토큰 단위로 소비하지 않습니다. 사람에게 필요한 것은 가독성이지 압축률이 아닙니다. **출력을 토큰 단위로 계량하는 소비자는 컨텍스트 윈도우가 유한한 LLM뿐입니다.** 이 플래그는 AI 에이전트가 이 CLI를 호출해서 문서를 읽는 시나리오를 설계 단계에서 상정하지 않았다면 존재할 이유가 없는 기능입니다.
+
+더 흥미로운 것은 이 기능이 매니페스트에서 모델링된 방식입니다. CLI의 자기 서술 매니페스트(`astryx manifest --json`)에 담긴 전역 옵션 정의를 보면:
+
+```jsonc
+{
+  "flag": "--lang <locale>",
+  "type": "enum",
+  "choices": ["en", "zh", "dense"]
+}
+```
+
+`dense`가 영어(`en`), 중국어(`zh`)와 같은 층위의 **로케일(locale) 선택지**로 정의되어 있습니다. 즉 Astryx는 "기계가 읽는 압축 형식"을 부가 옵션이 아니라 **하나의 언어로 취급**합니다. 사람은 영어나 중국어로 읽고, 에이전트는 dense로 읽는다 — 소비자 페르소나에 AI가 포함되어 있다는 것을 이보다 명확하게 보여주는 데이터 모델링은 없을 것입니다.
+
+이 렌즈를 끼고 CLI 전체를 다시 보면, 패턴이 드러납니다.
+
+## 에이전트 인터페이스의 해부 — 발견한 것들
+
+### (1) 모든 명령의 `--json`, 그리고 타입 있는 봉투
+
+Astryx CLI의 모든 명령은 `--json` 플래그로 기계 가독 출력을 지원합니다. 단순 JSON 덤프가 아니라 타입이 지정된 봉투(envelope) 형식입니다.
+
+```json
+{ "type": "component.detail", "data": { "name": "Button", ... } }
+```
+
+`type` 필드가 있다는 것은 소비자가 응답의 종류를 코드로 분기한다는 전제입니다. 실제로 Astryx는 이 봉투를 **소비하는 쪽의 코드**까지 패키지로 제공합니다. `@astryxdesign/cli/json`이라는 소비자 유틸리티입니다.
+
+```typescript
+import { parseResponse, isError, assertResponse } from '@astryxdesign/cli/json';
+import type { ComponentDetailResponse, CLIResult } from '@astryxdesign/cli/json';
+
+const result = parseResponse(stdout);
+if (isError(result)) {
+  console.error(result.error);
+} else {
+  switch (result.type) {
+    case 'component.detail':
+      result.data.name; // 타입 안전
+      break;
+  }
+}
+```
+
+CLI의 stdout을 파싱하고, 에러를 판별하고, 응답 타입을 단언하는 함수와 TypeScript 타입까지 배포합니다. "누군가 우리 CLI의 출력을 프로그램으로 소비할 것"이라는 전제가 없다면 만들 이유가 없는 패키지입니다. 그 "누군가"가 에이전트(또는 에이전트를 만드는 개발자)입니다.
+
+### (2) `manifest --json` — 자기 서술 API
+
+```bash
+astryx manifest --json
+```
+
+이 명령은 CLI 전체를 기계가 읽을 수 있는 형태로 서술합니다. 실제 출력 구조의 일부를 보면:
+
+```jsonc
+{
+  "apiVersion": 1,
+  "type": "manifest",
+  "data": {
+    "name": "astryx",
+    "version": "0.0.14",
+    "commands": [
+      {
+        "name": "component",
+        "description": "List components or print component docs",
+        "options": [
+          { "flag": "--props", "type": "boolean", "description": "Print only the props table" }
+        ],
+        "json": true,
+        "responseTypes": ["component.list", "component.detail", "component.detail.props"],
+        "examples": ["astryx component Button --props --json"]
+      }
+    ],
+    "jsonSupported": ["component", "docs", "…"]
+  }
+}
+```
+
+명령마다 어떤 응답 타입(`responseTypes`)이 돌아오는지, JSON을 지원하는지(`json: true`), 심지어 **사용 예시(`examples`)까지** 기계가 읽을 수 있는 필드로 서술합니다. 맨 위의 `apiVersion: 1`은 이 매니페스트 스키마 자체의 하위 호환을 계약하겠다는 선언입니다. 에이전트 관점에서 번역하면: **"이 도구로 무엇을 할 수 있는가"를 문서를 읽지 않고 런타임에 파악하는 온보딩 API**입니다. MCP 서버가 도구 목록을 스스로 서술하는 것과 같은 발상을 CLI에 구현한 것입니다.
+
+### (3) 에러의 이중화 — 그리고 자가 수정을 위한 힌트
+
+컴포넌트 이름을 잘못 입력했을 때의 실제 에러 응답입니다.
+
+```json
+{
+  "error": "No component named \"Buttn\"",
+  "code": "ERR_UNKNOWN_COMPONENT",
+  "suggestions": [{ "name": "Button", "reason": "similar name" }]
+}
+```
+
+세 필드가 각각 다른 소비자를 상대합니다. `error` 메시지는 사람이 읽고, `code`는 기계가 분기하고 — 문구는 버전마다 바뀔 수 있지만 코드는 안정적으로 유지된다는 계약입니다 — 그리고 `suggestions`가 백미입니다. "Buttn"을 치면 "Button을 의도한 것 아니냐"를 **구조화된 데이터로** 돌려줍니다. 에이전트의 전형적 실패 모드(이름을 근사하게 헛짚음)를 알고, 에이전트가 **다음 시도를 스스로 교정할 수 있는 재료**를 에러에 실어 보내는 것입니다. 실패 → 진단 → 재시도라는 에이전트 루프의 "진단" 단계를 라이브러리가 대신 해주는 설계입니다.
+
+프로그래매틱 API에서도 같은 구조가 유지됩니다.
+
+```typescript
+import { component, AstryxError } from '@astryxdesign/cli/api';
+
+try {
+  await component('Buttn');
+} catch (e) {
+  e.message;      // 'No component named "Buttn"'
+  e.code;         // 'ERR_UNKNOWN_COMPONENT'
+  e.suggestions;  // [{ name: 'Button', reason: 'similar name' }]
+}
+```
+
+### (4) npm scripts 등록 권장 — 에이전트의 실패 모드까지 고려
+
+README는 CLI를 이렇게 등록하기를 권장합니다.
+
+```json
+{
+  "scripts": {
+    "astryx": "node node_modules/@astryxdesign/cli/bin/astryx.mjs"
+  }
+}
+```
+
+주목할 것은 권장 이유가 명시되어 있다는 점입니다: AI 어시스턴트가 경로 오류 없이 신뢰성 있게 CLI에 접근하도록 하기 위해서. 에이전트가 실행 파일 경로를 헛짚는 구체적인 실패 모드를 관찰하고, 그것을 방지하는 관례까지 문서화한 것입니다. 에이전트와 실제로 부대껴본 조직만 쓸 수 있는 종류의 문장입니다.
+
+### (5) 에이전트 문서가 공식 진단 항목이다
+
+`astryx doctor`는 프로젝트 설정을 진단하는 명령인데, 실제 출력에 이런 항목이 있습니다.
+
+```text
+$ astryx doctor
+
+  ✓ Node.js version
+      Node v22.13.0 meets the minimum (>=22.13.0).
+  ✓ @astryxdesign/core installed
+  ⚠ Theme packages
+      No @astryxdesign/theme-* packages are installed.
+      → fix: Install a theme, e.g. `npm install @astryxdesign/theme-neutral`
+  ℹ AI agent docs
+      No agent docs (CLAUDE.md / AGENTS.md / .cursorrules) found.
+      → fix: Generate agent docs with `astryx init --features agents`.
+
+Summary: 4 passed, 1 warning, 0 failures, 3 info
+```
+
+Node 버전, 패키지 설치 여부, peer dependency와 **같은 층위에서 "AI agent docs" 존재 여부를 진단**합니다. CLAUDE.md, AGENTS.md, .cursorrules — 주요 에이전트 도구들의 컨벤션 파일을 구체적으로 인지하고 있고, 없으면 `astryx init --features agents`로 생성하라고 처방합니다.
+
+에이전트 문서가 "있으면 좋은 것"이 아니라 **테마 패키지 미설치와 동급의 설정 결함**으로 취급된다는 것 — 프로젝트 건강의 공식 항목에 에이전트 온보딩이 들어가 있다는 것이, 설치 단계부터 에이전트를 상정했다는 다섯 번째 물증입니다.
+
+### (6) 일관된 컨벤션 — 단, 이것은 아직 선언이다
+
+README는 모든 컴포넌트가 동일한 명명·속성·조합 규칙을 따르는 이유를 "사람과 AI 모두 예측 가능하게"라고 밝힙니다. 다만 정직하게 구분하자면, (1)~(5)가 구현에서 확인되는 물증인 반면 이 항목은 아직 선언 레벨입니다. 실제 150여 개 컴포넌트의 API가 얼마나 일관된지는 코드를 전수 조사해야 확인할 수 있고, 이 글의 조사 범위 밖입니다.
+
+## 전략 비교: 기계 인터페이스의 세 가지 유파
+
+Astryx를 조사하면서 흥미로웠던 것은, "AI에게 라이브러리를 어떻게 읽힐 것인가"라는 문제에 이미 서로 다른 유파가 형성되어 있다는 점입니다.
+
+### 정적 문서파 — `llms.txt`
+
+개인 오픈소스 진영에서 먼저 퍼진 방식입니다. 예컨대 페이지 전환 라이브러리 ssgoi는 AI 어시스턴트용 plain-text 가이드(`llms.txt`)를 별도 제공합니다. 사람용 문서 사이트와 별개로, LLM이 통째로 읽기 좋은 형태의 문서를 한 벌 더 두는 것입니다.
+
+- 장점: 구현 비용이 거의 없음. 정적 파일 하나.
+- 한계: 스냅샷임. 문서가 커지면 결국 컨텍스트를 다 차지하고, 에이전트가 필요한 부분만 골라 읽을 수 없음.
+
+### 질의 인터페이스파 — CLI `--json` (Astryx의 선택)
+
+Astryx는 `llms.txt`나 MCP에 대한 언급 없이(조사 시점 기준), CLI를 기계 인터페이스로 삼았습니다. 문서를 "읽는 것"에서 "질의하는 것"으로 바꾼 접근입니다. 실제 `search` 출력을 보면 이 철학이 보입니다.
+
+```text
+$ npx astryx search button
+
+Results for "button" (20):
+
+  [component]  Button
+               Button triggers an action when clicked. Use it for form submissions…
+               → npx astryx component Button
+
+  [hook]       useClickableContainer
+               Makes a container element clickable while preserving nested…
+               → npx astryx hook useClickableContainer
+```
+
+모든 검색 결과에 **다음에 실행할 명령**(`→ npx astryx component Button`)이 붙어 있습니다. 검색 → 상세 조회로 이어지는 탐색 경로를 출력 자체에 내장한 것으로, 에이전트가 추측 없이 다음 액션을 이어갈 수 있는 빵부스러기(breadcrumb)입니다. 에이전트는 `search`로 찾고, 안내된 명령으로 파고들고, `--dense`로 압축해 받고, `manifest`로 능력을 파악합니다.
+
+- 장점: 에이전트가 필요한 만큼만 가져감(토큰 효율). 항상 설치된 버전과 일치하는 정보. 별도 서버·설정 불필요 — 에이전트가 이미 가진 셸 실행 능력만으로 동작.
+- 한계: 에이전트가 CLI의 존재를 먼저 알아야 함(그래서 `init`이 에이전트 문서를 주입하는 것으로 보완).
+
+### 프로토콜파 — MCP
+
+MCP(Model Context Protocol) 서버로 도구·문서를 노출하는 방식입니다. 네이버파이낸셜의 E2E 자동화 사례를 다룬 글에서도 에이전트에게 GitHub 이슈, Figma 같은 사내 맥락을 MCP로 연결해주는 것이 인프라의 핵심 요소로 언급됩니다.
+
+- 장점: 표준 프로토콜, 도구 자기 서술, 에이전트 생태계와의 네이티브 통합.
+- 한계: 서버 구현·설정 비용. 사용자가 MCP를 지원하는 환경에서 작업해야 함.
+
+Meta가 CLI를 택한 이유는 공식적으로 설명되어 있지 않으므로 추정입니다만, 구조적으로 설득력 있는 해석은 이렇습니다: **CLI는 세 방식 중 유일하게 "이미 모든 에이전트가 가진 능력(셸 실행)"만을 전제**합니다. 특정 프로토콜 지원 여부와 무관하게, 터미널을 다룰 수 있는 에이전트라면 무엇이든 소비자가 됩니다. 자기 서술(`manifest`)로 MCP의 장점을, 버전 일치로 `llms.txt`의 단점을 각각 흡수한 절충이기도 합니다.
+
+## 함의: "문서"의 정의가 바뀌고 있다
+
+이 조사에서 제가 내린 결론은 이렇습니다. **문서의 정의가 "사람이 읽는 것"에서 "사람용 한 벌 + 기계용 한 벌"로 바뀌고 있습니다.**
+
+그리고 이중화되는 것은 문서만이 아닙니다.
+
+- **문서의 이중화**: 사람용 사이트 / 기계용 질의 인터페이스(또는 llms.txt)
+- **에러의 이중화**: 사람용 메시지 / 기계용 안정 코드
+- **출력의 이중화**: 사람용 가독 포맷 / 기계용 JSON 봉투(+토큰 압축)
+- **온보딩의 이중화**: 사람용 Getting Started / 에이전트용 문서 자동 주입
+
+개별 기업 사례들이 같은 방향으로 수렴하고 있다는 점도 눈에 띕니다. 네이버파이낸셜이 E2E 자동화 루프를 만들며 "에이전트가 효과적으로 작동하려면 AGENTS.md, 테스트 가이드, 유틸, MCP 연결이 먼저 깔려 있어야 한다"고 정리한 것과, Meta가 디자인 시스템에 에이전트용 인터페이스를 내장한 것은 규모와 도메인이 다를 뿐 같은 통찰입니다: **에이전트의 산출물 품질은 에이전트에게 무엇을 깔아주었는지가 결정한다.**
+
+라이브러리 생태계의 경쟁 축이 하나 늘어난 것이기도 합니다. 지금까지 라이브러리는 API 설계, 문서, DX로 경쟁했습니다. 이제 "에이전트가 얼마나 정확하게 이 라이브러리를 다룰 수 있는가" — 말하자면 AX(Agent Experience) — 가 새 축이 됩니다. 에이전트가 코드를 짜는 비중이 커질수록, 에이전트가 잘 다루는 라이브러리가 선택되는 라이브러리가 될 것이기 때문입니다.
+
+## 내 라이브러리라면 무엇을 하겠는가
+
+Meta 규모의 투자는 개인이 따라할 수 없지만, 이 조사에서 확인한 것들 중 개인 프로젝트 규모로 가져올 수 있는 최소 세트는 분명합니다.
+
+1. **`llms.txt` 한 장** — 비용이 가장 낮은 시작점. API 표면, 핵심 개념, 자주 틀리는 부분을 plain-text로.
+2. **안정적 에러 코드 + suggestions** — 에러에 기계가 분기할 `code`와 자가 교정 재료(`suggestions: [{ name: 'Button', reason: 'similar name' }]`)를 부여. 에이전트의 자가 수정 루프(실패 → 진단 → 재시도)는 이 구조 위에서만 신뢰성 있게 돕니다.
+3. **CLI가 있다면 `--json`** — 사람용 출력과 기계용 출력의 분리. 봉투에 `type` 필드를 두는 것까지.
+4. **에이전트 문서의 자동 주입** — init/설치 스크립트가 사용자 프로젝트에 에이전트용 가이드를 넣어주는 것.
+
+정리하면, "AI native 라이브러리"의 실체는 거창한 AI 기능이 아닙니다. `--dense` 같은 플래그 하나, 에러 코드 하나, JSON 봉투 하나 — **에이전트라는 두 번째 소비자를 설계 단계에서 상정했다는 증거들의 합**입니다. 그리고 그 증거는 README의 선언이 아니라 구현에서만 확인됩니다. 다음에 어떤 라이브러리가 "AI-ready"를 자칭하면, 문서 말고 CLI 플래그 목록을 열어보세요. 사람에게 불필요한 기능이 있는지. 그것이 진짜 신호입니다.
+
+<Callout type="info" title="조사 방법과 한계">
+  이 글은 2026년 7월 기준 facebook/astryx 저장소의 README, packages/core, packages/themes,
+  packages/cli 문서를 조사한 결과입니다. CLI 스펙과 README 인용은 저장소 문서에서 확인한 것이고,
+  Meta가 CLI 방식을 택한 이유(전략 비교 절)는 공식 설명이 없어 구조적 추정임을 밝힙니다. Astryx는
+  베타 단계이므로 세부 사항은 바뀔 수 있습니다.
+</Callout>
