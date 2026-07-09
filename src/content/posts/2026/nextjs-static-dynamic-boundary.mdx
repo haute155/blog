@@ -16,7 +16,6 @@ Error: Route "/products/[id]" used `params.id`.
 
 이 글의 주장은 이렇습니다. **Next 15/16의 렌더링·캐싱 관련 breaking change들 — async request API, fetch 기본 비캐시화, `dynamicIO`/`experimental_ppr` 플래그의 통합 — 은 전부 하나의 설계 방향으로 수렴합니다. "정적과 동적의 경계를 개발자가 코드로 선언하게 만든다"는 것이고, 그 공식적 종착점이 Cache Components입니다.**
 
-
 ## 문제의 근원: "이 컴포넌트는 언제 렌더링 가능한가"를 컴파일러가 알 수 없었다
 
 ### 동기 API가 만든 암묵적 가정
